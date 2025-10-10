@@ -280,10 +280,3 @@ module "my_project" {
 ## License
 
 This module is licensed under the MIT License. See LICENSE file for details.
-
-## Support
-
-For issues and questions:
-- Create an issue in this repository
-- Contact InsightFinder support
-- Check the documentation at https://docs.insightfinder.com
