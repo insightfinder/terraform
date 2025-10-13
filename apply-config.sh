@@ -30,11 +30,15 @@ url_encode() {
     python3 -c "import urllib.parse; print(urllib.parse.quote('$1', safe=''))"
 }
 
-# Authenticate and get token
+# Authenticate and get token (use cookie jar like Python requests.Session)
 echo "Getting authentication token..."
 ENCODED_PASSWORD=$(url_encode "$PASSWORD")
 
-TOKEN_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/login-check?userName=$USERNAME&password=$ENCODED_PASSWORD" \
+# Create temporary cookie jar
+COOKIE_JAR=$(mktemp)
+trap "rm -f $COOKIE_JAR" EXIT
+
+TOKEN_RESPONSE=$(curl --http1.1 -s -c "$COOKIE_JAR" -X POST "$BASE_URL/api/v1/login-check?userName=$USERNAME&password=$ENCODED_PASSWORD" \
     -H "Content-Type: application/json")
 
 if [[ -z "$TOKEN_RESPONSE" ]]; then
@@ -64,12 +68,12 @@ if ! echo "$CONFIG_CONTENT" | python3 -c "import json,sys; json.load(sys.stdin)"
     exit 1
 fi
 
-# Apply the configuration via API using the correct endpoint
-APPLY_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST \
+# Add verbose curl to see full request/response details, force HTTP/1.1 and use cookies to match Python
+APPLY_RESPONSE=$(curl --http1.1 -v -s -b "$COOKIE_JAR" -w "HTTPSTATUS:%{http_code}" -X POST \
     "$BASE_URL/api/v1/watch-tower-setting?projectName=$PROJECT_NAME&customerName=$USERNAME" \
     -H "Content-Type: application/json" \
     -H "X-CSRF-TOKEN: $TOKEN" \
-    -d "$CONFIG_CONTENT")
+    -d "$CONFIG_CONTENT" 2>&1)
 
 # Parse response
 HTTP_STATUS=$(echo "$APPLY_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
