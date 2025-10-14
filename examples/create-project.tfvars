@@ -11,7 +11,6 @@ username = "your_username"
 # export TF_VAR_license_key="your_license_key"
 
 enable_project_creation      = true   # Enable project creation
-enable_project_configuration = false  # Disable configuration
 
 create_project = {
   project_name         = "my-new-metrics-project"

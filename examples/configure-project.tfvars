@@ -10,7 +10,6 @@ username = "your_username"
 # export TF_VAR_password="your_password"
 # export TF_VAR_license_key="your_license_key"
 
-enable_project_creation      = false  # Disable project creation
 enable_project_configuration = true   # Enable project configuration
 
 project_config = {
