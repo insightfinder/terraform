@@ -23,7 +23,7 @@ project_config = {
     data_type          = "Metric"          # Options: Metric, Log, Incident, Alert
     instance_type      = "OnPremise"      # Your instance type
     project_cloud_type = "OnPremise"      # Options: AWS, Azure, GCP, OnPremise
-    insight_agent_type = "Custom"       # Use collectd for metrics
+    insight_agent_type = "Custom"         # Agent Type
   }
   
   # ========================================
@@ -32,8 +32,8 @@ project_config = {
   projectDisplayName = "Metric Project"
   cValue             = 3              # Continues value for project (count)
   pValue             = 0.95           # Probability threshold value for UBL
-  retentionTime      = 123             # Data retention time in days
-  samplingInterval   = 600            # Sampling interval in seconds (5 minutes)
+  retentionTime      = 90             # Data retention time in days
+  samplingInterval   = 300            # Sampling interval in seconds (5 minutes)
   
   # ========================================
   # Advanced Detection Settings
