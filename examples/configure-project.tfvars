@@ -10,10 +10,21 @@ username = "your_username"
 # export TF_VAR_password="your_password"
 # export TF_VAR_license_key="your_license_key"
 
-enable_project_configuration = true   # Enable project configuration
-
+# ==========================================
+# Project Configuration Only
+# ==========================================
 project_config = {
   project_name       = "existing-project-name"  # Name of existing project to configure
+  create_if_not_exists = true
+
+  # Project creation settings (required when create_if_not_exists = true)
+  project_creation_config = {
+    system_name         = "production-monitoring-cluster"
+    data_type          = "Metric"          # Options: Metric, Log, Incident, Alert
+    instance_type      = "OnPremise"      # Your instance type
+    project_cloud_type = "OnPremise"      # Options: AWS, Azure, GCP, OnPremise
+    insight_agent_type = "Custom"       # Use collectd for metrics
+  }
   
   # ========================================
   # Basic Configuration

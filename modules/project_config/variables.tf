@@ -35,13 +35,18 @@ variable "create_if_not_exists" {
 variable "project_creation_config" {
   description = "Project creation configuration (required if create_if_not_exists is true)"
   type = object({
-    system_name         = optional(string, "")
+    system_name         = string
     data_type          = optional(string, "Metric")
     instance_type      = optional(string, "OnPremise")
     project_cloud_type = optional(string, "OnPremise")
     insight_agent_type = optional(string, "Custom")
   })
-  default = {}
+  default = null
+  
+  validation {
+    condition = var.create_if_not_exists == false || (var.project_creation_config != null && var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
+    error_message = "project_creation_config with system_name is required when create_if_not_exists is true."
+  }
 }
 
 # Individual variables for convenience (matching OpenAPI spec exactly)

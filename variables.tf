@@ -25,36 +25,9 @@ variable "license_key" {
   sensitive   = true
 }
 
-# Control flags for what to create/configure
-variable "enable_project_creation" {
-  description = "Whether to create a new project"
-  type        = bool
-  default     = false
-}
-
-variable "enable_project_configuration" {
-  description = "Whether to configure an existing project"
-  type        = bool
-  default     = true
-}
-
-# Project Creation Configuration Block
-variable "create_project" {
-  description = "Project creation configuration"
-  type = object({
-    project_name         = string
-    system_name          = string
-    data_type           = string
-    instance_type       = string
-    project_cloud_type  = string
-    insight_agent_type  = string
-  })
-  default = null
-}
-
 # Project Configuration Block
 variable "project_config" {
-  description = "Project configuration object - must include project_name and supports any OpenAPI fields"
+  description = "Project configuration object - must include project_name and supports any OpenAPI fields. Set create_if_not_exists=true and provide project_creation_config to create projects that don't exist."
   type        = any
   default     = null
 }

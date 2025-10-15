@@ -4,9 +4,10 @@ A production-ready Terraform module for managing InsightFinder projects using In
 
 ## ✨ Features
 
-- **Project Creation**: Create new InsightFinder projects with proper configuration
-- **Project Configuration**: Configure existing projects with advanced monitoring settings
-- **Flexible Deployment**: Support for different environments (dev/staging/production)
+- **Unified Project Management**: Create and configure projects with a single, simplified interface
+- **Smart Project Creation**: Create projects automatically when they don't exist using `create_if_not_exists`
+- **Flexible Configuration**: Configure projects with advanced monitoring settings
+- **Environment Support**: Support for different environments (dev/staging/production)
 - **Type Safety**: Terraform validates configuration before deployment
 - **Error Handling**: Robust error checking and validation
 - **Future-Proof**: Supports any OpenAPI fields without code changes
@@ -45,23 +46,24 @@ terraform apply -var-file="my-config.tfvars"
 
 ### 1. Create New Project Only
 
-Use this when you only want to create a project without configuring it:
+Use this when you only want to create a project without additional configuration:
 
 ```hcl
 # examples/create-project.tfvars
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
-enable_project_creation      = true
-enable_project_configuration = false
-
-create_project = {
+project_config = {
   project_name         = "my-new-metrics-project"
-  system_name          = "production-monitoring-cluster"
-  data_type           = "Metric"
-  instance_type       = "OnPremise"
-  project_cloud_type  = "OnPremise"
-  insight_agent_type  = "collectd"
+  create_if_not_exists = true
+  
+  project_creation_config = {
+    system_name         = "production-monitoring-cluster"
+    data_type          = "Metric"
+    instance_type      = "OnPremise"
+    project_cloud_type = "OnPremise"
+    insight_agent_type = "collectd"
+  }
 }
 ```
 
@@ -74,11 +76,10 @@ Use this when you want to configure an existing project:
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
-enable_project_creation      = false
-enable_project_configuration = true
-
 project_config = {
-  project_name       = "existing-project-name"
+  project_name         = "existing-project-name"
+  create_if_not_exists = false  # Don't create - expect it to exist
+  
   projectDisplayName = "Production Monitoring"
   cValue             = 3
   pValue             = 0.95
@@ -110,21 +111,31 @@ Use this for end-to-end project setup:
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
-enable_project_creation      = true
-enable_project_configuration = true
-create_if_not_exists         = true
-
-create_project = {
-  project_name         = "web-app-monitoring"
-  system_name          = "production-web-cluster"
-  data_type           = "Metric"
-  insight_agent_type  = "collectd"
-}
-
 project_config = {
-  project_name       = "web-app-monitoring"  # Same as above
+  project_name         = "web-app-monitoring"
+  create_if_not_exists = true
+  
+  # Project creation settings
+  project_creation_config = {
+    system_name         = "production-web-cluster"
+    data_type          = "Metric"
+    instance_type      = "OnPremise"
+    project_cloud_type = "OnPremise"
+    insight_agent_type = "collectd"
+  }
+  
+  # Project configuration
   projectDisplayName = "Web Application Monitoring"
-  # ... configuration settings
+  cValue             = 3
+  pValue             = 0.95
+  retentionTime      = 90
+  samplingInterval   = 600
+  
+  # Advanced settings
+  dynamicBaselineDetectionFlag = true
+  enableUBLDetect = true
+  enableCumulativeDetect = false
+  modelSpan = 0
 }
 ```
 
@@ -144,26 +155,26 @@ project_config = {
 |----------|------|---------|-------------|
 | `base_url` | string | `"https://app.insightfinder.com"` | InsightFinder API URL |
 
-### Control Variables
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enable_project_creation` | bool | `false` | Enable project creation |
-| `enable_project_configuration` | bool | `true` | Enable project configuration |
-| `create_if_not_exists` | bool | `false` | Create project if it doesn't exist during configuration |
-
-### Configuration Objects
+### Configuration Object
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `create_project` | object | Project creation settings (required if `enable_project_creation = true`) |
-| `project_config` | object | Project configuration settings (required if `enable_project_configuration = true`) |
+| `project_config` | object | Project configuration settings with optional creation parameters |
+
+#### Project Config Object Structure
+
+The `project_config` object supports:
+
+- **project_name** (string, required): Project name
+- **create_if_not_exists** (bool, optional): Create project if it doesn't exist
+- **project_creation_config** (object, required if create_if_not_exists=true): Creation parameters
+- **All OpenAPI project configuration fields**: Any field from the InsightFinder API spec
 
 ## 📁 Examples
 
 The module includes three focused example files:
 
-- **`examples/create-project.tfvars`**: Create new project only
+- **`examples/create-project.tfvars`**: Create new project with minimal configuration
 - **`examples/configure-project.tfvars`**: Configure existing project only  
 - **`examples/create-and-configure.tfvars`**: Create and configure in one step
 - **`external-usage-example/`**: Complete external module usage example
@@ -173,16 +184,14 @@ The module includes three focused example files:
 ```
 terraform/
 ├── main.tf                           # Main module orchestration
-├── variables.tf                      # Variable definitions
-├── outputs.tf                        # Module outputs
+├── variables.tf                      # Variable definitions  
 ├── examples/
 │   ├── create-project.tfvars         # Create project only
 │   ├── configure-project.tfvars      # Configure existing project
 │   └── create-and-configure.tfvars   # Create and configure together
 ├── modules/
 │   ├── api_client/                   # Shared authentication
-│   ├── project_creation/             # Project creation logic
-│   └── project_config/               # Project configuration
+│   └── project_config/               # Unified project management
 └── external-usage-example/           # External module usage demo
     ├── main.tf                       # Module integration
     ├── variables.tf                  # Custom variables

@@ -25,24 +25,9 @@ module "api_client" {
   license_key = var.license_key
 }
 
-# Project Creation Module - Creates new projects when create_project block is provided
-module "project_creation" {
-  count  = var.create_project != null && var.enable_project_creation ? 1 : 0
-  source = "./modules/project_creation"
-  
-  project_name         = var.create_project.project_name
-  system_name          = var.create_project.system_name
-  data_type           = var.create_project.data_type
-  instance_type       = var.create_project.instance_type
-  project_cloud_type  = var.create_project.project_cloud_type
-  insight_agent_type  = var.create_project.insight_agent_type
-  
-  api_config = module.api_client.auth_config
-}
-
-# Project Configuration Module - Configures projects when project_config is provided
+# Project Configuration Module - Configures projects and can create them if they don't exist
 module "project_config" {
-  count  = var.project_config != null && var.enable_project_configuration ? 1 : 0
+  count  = var.project_config != null ? 1 : 0
   source = "./modules/project_config"
   
   project_name              = var.project_config.project_name
@@ -50,26 +35,16 @@ module "project_config" {
   create_if_not_exists      = try(var.project_config.create_if_not_exists, false)
   project_creation_config   = try(var.project_config.project_creation_config, null)
   api_config                = module.api_client.auth_config
-  
-  # Ensure project is created before configuration if both are enabled
-  depends_on = [module.project_creation]
 }
 
 # Output configuration status
 output "configuration_status" {
   description = "Configuration application status"
   value = {
-    # Show project names from the respective config blocks
-    project_names = {
-      created    = var.create_project != null ? var.create_project.project_name : null
-      configured = var.project_config != null ? var.project_config.project_name : null
-    }
-    project_created         = var.create_project != null && var.enable_project_creation
-    project_configured      = var.project_config != null && var.enable_project_configuration
-    applied_at             = timestamp()
+    project_name       = var.project_config != null ? var.project_config.project_name : null
+    project_configured = var.project_config != null
+    create_if_not_exists = var.project_config != null ? try(var.project_config.create_if_not_exists, false) : false
+    applied_at         = timestamp()
   }
-  depends_on = [
-    module.project_creation,
-    module.project_config
-  ]
+  depends_on = [module.project_config]
 }

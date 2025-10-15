@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Consolidated project creation and configuration into a single `project_config` block
+- **BREAKING**: Removed dedicated `project_creation` module and `create_project` variable
+- **BREAKING**: Removed `enable_project_creation` and `enable_project_configuration` control flags
+- Simplified module structure with unified project management
+- Updated all example files to use new consolidated structure
+- Updated external usage examples to reflect simplified interface
+
+### Removed
+- `modules/project_creation/` directory and files
+- `create_project` variable
+- `enable_project_creation` variable
+- `enable_project_configuration` variable
+
+### Migration Guide
+- Replace `create_project` block with `project_config.project_creation_config`
+- Set `project_config.create_if_not_exists = true` instead of `enable_project_creation = true`
+- Remove `enable_project_creation` and `enable_project_configuration` variables
+- Consolidate all project settings into single `project_config` block
+
 ## [1.0.0] - 2025-10-10
 
 ### Added

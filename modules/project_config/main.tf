@@ -95,13 +95,45 @@ resource "null_resource" "create_project_if_needed" {
       echo "Project Creation Response Status: $status"
       echo "Project Creation Response Body: $body"
       
+      # Check for credential errors first
+      if echo "$body" | grep -q "does not match our records"; then
+        echo "❌ Authentication failed. Please check your username and license key."
+        echo "Username: ${var.api_config.username}"
+        echo "License Key: [REDACTED - first 8 chars: $(echo "${var.api_config.license_key}" | cut -c1-8)...]"
+        exit 1
+      fi
+      
       # Check if request was successful
       if [ "$status" -eq 200 ]; then
         # Check if response indicates success
         if echo "$body" | grep -q '"success":true' || echo "$body" | grep -q '"isSuccess":true'; then
           echo "✅ Project '${var.project_name}' created successfully!"
+          echo "$body" > "project-creation-response-${var.project_name}.json"
         else
           echo "❌ Project creation failed. API returned success=false"
+          echo "Response: $body"
+          exit 1
+        fi
+      elif [ "$status" -eq 500 ]; then
+        # Check if this is a "project already exists" error by trying to check again
+        echo "⚠️ Got HTTP 500, checking if project already exists..."
+        check_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "operation=check" \
+          -d "userName=${var.api_config.username}" \
+          -d "licenseKey=${var.api_config.license_key}" \
+          -d "projectName=${var.project_name}" \
+          "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
+        
+        check_body=$(echo "$check_response" | sed '$d')
+        check_status=$(echo "$check_response" | tail -n1 | sed 's/.*HTTP_STATUS://')
+        
+        if [ "$check_status" -eq 200 ] && echo "$check_body" | grep -q '"isProjectExist":true'; then
+          echo "✅ Project '${var.project_name}' already exists (confirmed after 500 error)."
+          echo "$check_body" > "project-creation-response-${var.project_name}.json"
+        else
+          echo "❌ Failed to create project. HTTP Status: $status"
           echo "Response: $body"
           exit 1
         fi
@@ -110,12 +142,21 @@ resource "null_resource" "create_project_if_needed" {
         echo "Response: $body"
         exit 1
       fi
+      
+      # Cleanup temp files
+      rm -f "/tmp/project-config-check-${var.project_name}.json"
+      rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
   }
 
   triggers = {
-    project_name = var.project_name
-    username     = var.api_config.username
+    project_name         = var.project_name
+    system_name          = var.project_creation_config.system_name
+    data_type           = var.project_creation_config.data_type
+    instance_type       = var.project_creation_config.instance_type
+    project_cloud_type  = var.project_creation_config.project_cloud_type
+    insight_agent_type  = var.project_creation_config.insight_agent_type
+    username            = var.api_config.username
   }
 }
 
