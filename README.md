@@ -24,13 +24,13 @@ export TF_VAR_license_key="your_insightfinder_license_key"
 
 ### 2. Choose Your Use Case
 
-- **Complete project + ServiceNow setup**: `examples/project-with-servicenow.tfvars`
+- **Complete project + ServiceNow setup**: `examples/example.tfvars`
 
 ### 3. Deploy
 
 ```bash
 # Copy and modify the appropriate example
-cp examples/create-project.tfvars my-config.tfvars
+cp examples/example.tfvars my-config.tfvars
 # Edit my-config.tfvars with your settings
 
 # Deploy
@@ -141,7 +141,6 @@ project_config = {
 Use this to configure ServiceNow integration for incident management:
 
 ```hcl
-# examples/servicenow-config.tfvars
 base_url = "https://app.insightfinder.com"
 username = "your_username"
 
@@ -152,7 +151,7 @@ servicenow_config = {
   dampening_period = 7200000
   client_id        = "your_client_id"
   client_secret    = "your_client_secret"
-  system_names     = ["Production System", "Development System"]  # Human-readable names
+  system_names     = ["Production System", "Development System"]
   options          = ["Root Cause"]  # Options: "Detected Incident", "Detected Incident with RCA", "Predicted Incident", "Root Cause"
   content_option   = ["SUMMARY"]   # Options: "SUMMARY", "RECOMMENDATION"
 }
@@ -165,7 +164,6 @@ servicenow_config = {
 Use this for end-to-end setup with ServiceNow integration:
 
 ```hcl
-# examples/project-with-servicenow.tfvars
 base_url = "https://app.insightfinder.com"
 username = "your_username"
 
@@ -246,11 +244,7 @@ terraform/
 ├── main.tf                           # Main module orchestration
 ├── variables.tf                      # Variable definitions  
 ├── examples/
-│   ├── create-project.tfvars         # Create project only
-│   ├── configure-project.tfvars      # Configure existing project
-│   ├── create-and-configure.tfvars   # Create and configure together
-│   ├── servicenow-config.tfvars      # ServiceNow integration only
-│   └── project-with-servicenow.tfvars # Complete project + ServiceNow
+│   └── example.tfvars                # Complete project + ServiceNow
 ├── modules/
 │   ├── api_client/                   # Shared authentication & token caching
 │   ├── project_config/               # Unified project management

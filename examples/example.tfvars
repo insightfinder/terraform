@@ -105,6 +105,28 @@ project_config = {
   }
 }
 
+
+# ==========================================
+# ServiceNow Integration Configuration
+# ==========================================
+servicenow_config = {
+  # ServiceNow Instance Settings
+  service_host      = "https://dev296992.service-now.com/"
+  proxy            = ""  # Optional proxy server
+  account          = "servicenow_username"
+  password         = "servicenow_password"
+  
+  # Integration Settings
+  dampening_period = 7200000  # 120 minutes dampening for production
+  client_id        = ""  # Optional
+  client_secret    = ""  # Optional
+  
+  # System and Content Configuration
+  system_names    = ["Test System 1", "Test System 2"]     # Replace with your actual system names from InsightFinder
+  options         = ["Detected Incident", "Root Cause"]    # Options: "Detected Incident", "Detected Incident with RCA", "Predicted Incident", "Root Cause"
+  content_option  = ["RECOMMENDATION"]                     # Options: "SUMMARY", "RECOMMENDATION"
+}
+
 # ==========================================
 # DEPLOYMENT INSTRUCTIONS
 # ==========================================
