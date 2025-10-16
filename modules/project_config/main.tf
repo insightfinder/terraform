@@ -73,6 +73,9 @@ resource "null_resource" "create_project_if_needed" {
       
       echo "Creating project '${var.project_name}' as it doesn't exist..."
       
+      # Create outputs directory if it doesn't exist
+      mkdir -p outputs
+      
       # Create form data for project creation
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
@@ -108,7 +111,7 @@ resource "null_resource" "create_project_if_needed" {
         # Check if response indicates success
         if echo "$body" | grep -q '"success":true' || echo "$body" | grep -q '"isSuccess":true'; then
           echo "✅ Project '${var.project_name}' created successfully!"
-          echo "$body" > "project-creation-response-${var.project_name}.json"
+          echo "$body" > "outputs/project-creation-response-${var.project_name}.json"
         else
           echo "❌ Project creation failed. API returned success=false"
           echo "Response: $body"
@@ -131,7 +134,7 @@ resource "null_resource" "create_project_if_needed" {
         
         if [ "$check_status" -eq 200 ] && echo "$check_body" | grep -q '"isProjectExist":true'; then
           echo "✅ Project '${var.project_name}' already exists (confirmed after 500 error)."
-          echo "$check_body" > "project-creation-response-${var.project_name}.json"
+          echo "$check_body" > "outputs/project-creation-response-${var.project_name}.json"
         else
           echo "❌ Failed to create project. HTTP Status: $status"
           echo "Response: $body"
@@ -204,22 +207,31 @@ locals {
   api_config = try(var.project_config.config, {})
 }
 
-# Generate configuration JSON file (includes all metadata for reference)
-resource "local_file" "config" {
+# Create outputs directory
+resource "null_resource" "create_outputs_dir" {
+  provisioner "local-exec" {
+    command = "mkdir -p outputs"
+  }
+}
+
+# Generate configuration JSON file for debugging/validation (all fields)
+resource "local_file" "config_json" {
+  depends_on = [null_resource.create_outputs_dir]
   content  = jsonencode(local.final_config)
-  filename = "${path.module}/generated-config.json"
+  filename = "outputs/generated-config.json"
 }
 
 # Generate API-specific configuration JSON file (only config fields)
 resource "local_file" "api_config" {
+  depends_on = [null_resource.create_outputs_dir]
   content  = jsonencode(local.api_config)
-  filename = "${path.module}/api-config.json"
+  filename = "outputs/api-config.json"
 }
 
 # Apply configuration to InsightFinder API
 resource "null_resource" "apply_config" {
   depends_on = [
-    local_file.config,
+    local_file.config_json,
     local_file.api_config,
     null_resource.check_project_exists,
     null_resource.create_project_if_needed
@@ -228,6 +240,9 @@ resource "null_resource" "apply_config" {
   provisioner "local-exec" {
     command = <<-EOT
       echo "Applying configuration to project '${var.project_name}'..."
+      
+      # Create outputs directory if it doesn't exist
+      mkdir -p outputs
       
       # Verify project exists before applying configuration
       if [ -f "/tmp/project-config-check-${var.project_name}.json" ]; then
@@ -247,7 +262,7 @@ resource "null_resource" "apply_config" {
       fi
       
       # Read configuration from generated config file (use full config like working script)
-      config_json=$(cat "${local_file.config.filename}")
+      config_json=$(cat "${local_file.config_json.filename}")
       
       # Validate JSON
       if ! echo "$config_json" | python3 -c "import json,sys; json.load(sys.stdin)" > /dev/null 2>&1; then
@@ -310,9 +325,9 @@ resource "null_resource" "apply_config" {
       if [ "$status" -eq 200 ]; then
         echo "✅ Configuration applied successfully to project '${var.project_name}'!"
         if [[ -n "$body" ]]; then
-          echo "$body" > "project-config-response-${var.project_name}.json"
+          echo "$body" > "outputs/project-config-response-${var.project_name}.json"
         else
-          echo '{"status":"success","message":"Configuration applied successfully"}' > "project-config-response-${var.project_name}.json"
+          echo '{"status":"success","message":"Configuration applied successfully"}' > "outputs/project-config-response-${var.project_name}.json"
         fi
       else
         echo "❌ Failed to apply configuration. HTTP Status: $status"
@@ -327,7 +342,7 @@ resource "null_resource" "apply_config" {
   }
 
   triggers = {
-    config_hash  = sha256(local_file.config.content)
+    config_hash  = sha256(local_file.config_json.content)
     project_name = var.project_name
     username     = var.api_config.username
     auth_token   = var.api_config.auth_token

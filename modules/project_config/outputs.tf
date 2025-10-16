@@ -7,7 +7,7 @@ output "project_name" {
 
 output "config_file_path" {
   description = "Path to the generated configuration file"
-  value       = local_file.config.filename
+  value       = local_file.config_json.filename
 }
 
 output "final_config" {
@@ -19,7 +19,7 @@ output "configuration_applied" {
   description = "Configuration application status"
   value = {
     project_name = var.project_name
-    config_file  = local_file.config.filename
+    config_file  = local_file.config_json.filename
     applied_at   = timestamp()
   }
   depends_on = [null_resource.apply_config]

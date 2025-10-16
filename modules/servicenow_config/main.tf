@@ -116,6 +116,9 @@ resource "null_resource" "configure_servicenow" {
     command = <<-EOT
       echo "Configuring ServiceNow integration..."
       
+      # Create outputs directory if it doesn't exist
+      mkdir -p outputs
+      
       # Read resolved system IDs
       if [ ! -f "/tmp/resolved-system-ids-${var.api_config.username}.txt" ]; then
         echo "❌ System ID resolution failed - no resolved system IDs file found"
@@ -155,6 +158,7 @@ resource "null_resource" "configure_servicenow" {
         -H "Content-Type: application/x-www-form-urlencoded" \
         -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
         -b "$cookie_file" \
+        -d "verify=true" \
         -d "operation=ServiceNow" \
         -d "service_host=${var.servicenow_config.service_host}" \
         -d "proxy=${var.servicenow_config.proxy}" \
@@ -189,7 +193,68 @@ resource "null_resource" "configure_servicenow" {
         # Check if response indicates success - looking for the specific success response format
         if echo "$body" | grep -q '"success":true'; then
           echo "✅ ServiceNow integration configured successfully!"
-          echo "$body" > "servicenow-config-response.json"
+          echo "$body" > "outputs/servicenow-config-response.json"
+          
+          # Make second API call without verify flag (only if first call was successful)
+          echo "Making second ServiceNow configuration call without verify flag..."
+          
+          response2=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
+            -b "$cookie_file" \
+            -d "operation=ServiceNow" \
+            -d "service_host=${var.servicenow_config.service_host}" \
+            -d "proxy=${var.servicenow_config.proxy}" \
+            -d "account=${var.servicenow_config.account}" \
+            -d "password=${var.servicenow_config.password}" \
+            -d "dampeningPeriod=${var.servicenow_config.dampening_period}" \
+            -d "appId=${var.servicenow_config.app_id}" \
+            -d "appKey=${var.servicenow_config.app_key}" \
+            -d "customerName=${var.api_config.username}" \
+            -d "systemIds=$system_ids_json" \
+            -d "options=$options_json" \
+            -d "contentOption=$content_option_json" \
+            "${var.api_config.base_url}/api/v1/service-integration")
+          
+          # Extract response body and status code for second call
+          body2=$(echo "$response2" | sed '$d')
+          status2=$(echo "$response2" | tail -n1 | sed 's/.*HTTP_STATUS://')
+          
+          echo "Second ServiceNow Configuration Response Status: $status2"
+          echo "Second ServiceNow Configuration Response Body: $body2"
+          
+          # Check for authentication errors first
+          if echo "$body2" | grep -q "authentication\|unauthorized\|invalid.*credentials\|token.*expired"; then
+            echo "⚠️  Authentication failed during second ServiceNow configuration call."
+            echo "Username: ${var.api_config.username}"
+            echo "Base URL: ${var.api_config.base_url}"
+            # Don't exit on second call failure - first call already succeeded
+          fi
+          
+          # Check if second request was successful
+          if [ "$status2" -eq 200 ]; then
+            # Check if response indicates success - looking for the specific success response format
+            if echo "$body2" | grep -q '"success":true'; then
+              echo "✅ Second ServiceNow configuration call also successful!"
+              echo "$body2" > "outputs/servicenow-config-response-second.json"
+            else
+              echo "⚠️  Second ServiceNow configuration call failed. API returned success=false"
+              echo "Response: $body2"
+              # Don't exit on second call failure - first call already succeeded
+            fi
+          elif [ "$status2" -eq 401 ]; then
+            echo "⚠️  Authentication failed on second call. Please check your authentication token."
+            echo "Username: ${var.api_config.username}"
+            # Don't exit on second call failure - first call already succeeded
+          elif [ "$status2" -eq 403 ]; then
+            echo "⚠️  Access forbidden on second call. Please check your permissions for ServiceNow configuration."
+            # Don't exit on second call failure - first call already succeeded
+          else
+            echo "⚠️  Second ServiceNow configuration call failed. HTTP Status: $status2"
+            echo "Response: $body2"
+            # Don't exit on second call failure - first call already succeeded
+          fi
         else
           echo "❌ ServiceNow configuration failed. API returned success=false"
           echo "Response: $body"

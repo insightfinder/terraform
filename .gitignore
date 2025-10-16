@@ -62,20 +62,14 @@ terraform.rc# Ignore override files as they are usually used to override resourc
 
 
 
-# Generated filesoverride.tflib/
-
+# Generated files and outputs
+outputs/
 *-response-*.json
-
-generated-config.jsonoverride.tf.jsonlib64/
-
+generated-config.json
 api-config.json
+monitoring-status.json
 
-monitoring-status.json*_override.tfparts/
-
-
-
-# Temporary files*_override.tf.jsonsdist/
-
+# Temporary files
 *.tmp
 
 *.tempvar/
@@ -113,27 +107,18 @@ terraform.rc#  Usually these files are written by a python script from a templat
 
 # Generated files*.manifest
 
-*-response-*.json*.spec
-
-generated-config.json
-
-api-config.json# Installer logs
-
-monitoring-status.jsonpip-log.txt
-
+# Installer logs
+pip-log.txt
 pip-delete-this-directory.txt
 
 # Temporary files
+*.tmp
 
-*.tmp# Unit test / coverage reports
-
-*.temphtmlcov/
-
-/tmp/.tox/
-
+# Unit test / coverage reports
+htmlcov/
+.tox/
 .nox/
-
-# IDE files.coverage
+.coverage
 
 .vscode/.coverage.*
 
