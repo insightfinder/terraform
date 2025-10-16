@@ -46,7 +46,7 @@ terraform apply -var-file="my-config.tfvars"
 Use this when you only want to create a project without additional configuration:
 
 ```hcl
-# examples/create-project.tfvars
+# examples/example.tfvars
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
@@ -69,7 +69,7 @@ project_config = {
 Use this when you want to configure an existing project:
 
 ```hcl
-# examples/configure-project.tfvars
+# examples/example.tfvars
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
@@ -88,14 +88,17 @@ project_config = {
   enableUBLDetect = true
   
   # Instance grouping
-  instanceGroupingData = [
-    {
-      instanceName        = "web-server-01"
-      instanceDisplayName = "Web Server 1"
-      appName            = "frontend"
-      ignoreFlag         = false
-    }
-  ]
+  instanceGroupingUpdate = {
+    instanceDataList = [
+      {
+        instanceName        = "web-server-01"
+        instanceDisplayName = "Web Server 1"
+        appName            = "frontend"
+        component          = "web-service"
+        ignoreFlag         = false
+      }
+    ]
+  }
 }
 ```
 
@@ -104,7 +107,7 @@ project_config = {
 Use this for end-to-end project setup:
 
 ```hcl
-# examples/create-and-configure.tfvars
+# examples/example.tfvars
 base_url = "https://stg.insightfinder.com"
 username = "your_username"
 
@@ -133,6 +136,18 @@ project_config = {
   enableUBLDetect = true
   enableCumulativeDetect = false
   modelSpan = 0
+  
+  # Metric-specific configuration
+  componentMetricSettingOverallModelList = [
+    {
+      metricName                        = "cpu_usage"
+      escalateIncidentAll              = true
+      thresholdAlertLowerBound         = 15
+      thresholdAlertUpperBound         = 85
+      thresholdNoAlertLowerBound       = 30
+      thresholdNoAlertUpperBound       = 70
+    }
+  ]
 }
 ```
 
@@ -229,11 +244,11 @@ The `servicenow_config` object supports:
 - **service_host** (string, required): ServiceNow instance hostname
 - **account** (string, required): ServiceNow username
 - **password** (string, required): ServiceNow password
-- **app_id** (string, required): ServiceNow application ID
-- **app_key** (string, required): ServiceNow application key
+- **client_id** (string, optional): ServiceNow application client ID
+- **client_secret** (string, optional): ServiceNow application client secret
 - **system_names** (list(string), required): List of human-readable system names (automatically resolved to system IDs)
 - **proxy** (string, optional): Proxy server (default: "")
-- **dampening_period** (number, optional): Dampening period in seconds (default: 300)
+- **dampening_period** (number, required): Dampening period in seconds
 - **options** (list(string), optional): Integration options (default: [])
 - **content_option** (list(string), optional): Content options (default: [])
 
@@ -282,7 +297,7 @@ echo $TF_VAR_license_key
 
 ### Project Not Found Errors
 
-- Ensure the project name exists if `enable_project_creation = false`
+- Ensure the project name exists if `create_if_not_exists = false`
 - Set `create_if_not_exists = true` to create missing projects automatically
 - Use staging URL for testing: `base_url = "https://stg.insightfinder.com"`
 
@@ -294,7 +309,7 @@ echo $TF_VAR_license_key
 
 ### Configuration Not Applied
 
-- Ensure `enable_project_configuration = true`
+- Ensure `project_config` is properly defined with required parameters
 - Check that the project name matches exactly
 - Verify the API returns HTTP 200 status
 
@@ -308,19 +323,3 @@ echo $TF_VAR_license_key
 ## 📄 License
 
 See [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Test your changes with the provided examples
-4. Ensure all three example use cases work
-5. Submit a pull request
-
-## 📞 Support
-
-For issues and questions:
-- Create an issue in this repository
-- Contact InsightFinder support
-- Check the example files for usage patterns
-- Review the troubleshooting section
