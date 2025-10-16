@@ -31,3 +31,23 @@ variable "project_config" {
   type        = any
   default     = null
 }
+
+# ServiceNow Configuration Block
+variable "servicenow_config" {
+  description = "ServiceNow integration configuration object"
+  type = object({
+    service_host       = string
+    proxy             = optional(string, "")
+    account           = string
+    password          = string
+    dampening_period  = optional(number, 300)
+    client_id         = string  # ServiceNow application client ID (sent as app_id to API)
+    client_secret     = string  # ServiceNow application client secret (sent as app_key to API)
+    system_names      = optional(list(string), [])  # Human-readable system names (automatically resolved to system IDs)
+    system_ids        = optional(list(string), [])  # System IDs
+    options           = optional(list(string), [])
+    content_option    = optional(list(string), [])
+  })
+  default   = null
+  sensitive = true
+}

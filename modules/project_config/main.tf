@@ -255,36 +255,18 @@ resource "null_resource" "apply_config" {
         exit 1
       fi
       
-      # Step 1: Authenticate and get token
-      echo "Getting authentication token..."
+      # Step 1: Get cached authentication token
+      echo "Getting cached authentication token..."
       
-      # Create temporary cookie jar
-      cookie_jar=$(mktemp)
-      trap "rm -f $cookie_jar" EXIT
-      
-      # URL encode password
-      encoded_password=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${var.api_config.password}', safe=''))")
-      
-      token_response=$(curl --http1.1 -s -c "$cookie_jar" -X POST \
-        "${var.api_config.base_url}/api/v1/login-check?userName=${var.api_config.username}&password=$encoded_password" \
-        -H "Content-Type: application/json")
-      
-      if [[ -z "$token_response" ]]; then
-        echo "❌ No response from authentication endpoint"
+      # Use cached token from api_client module
+      if [ -z "${var.api_config.auth_token}" ]; then
+        echo "❌ Authentication token is required for project configuration"
         exit 1
       fi
       
-      # Extract token from response
-      token=$(echo "$token_response" | grep -o '"token":"[^"]*"' | cut -d'"' -f4 || echo "")
+      echo "✅ Using cached authentication token"
       
-      if [[ -z "$token" ]]; then
-        echo "❌ Failed to get authentication token"
-        echo "Response: $token_response"
-        exit 1
-      fi
-      echo "✅ Authentication successful"
-      
-      # Step 2: Apply configuration using authenticated session
+      # Step 2: Apply configuration using cached token
       echo "Applying project configuration..."
       
       # Add verbose output to debug
@@ -296,12 +278,24 @@ resource "null_resource" "apply_config" {
       temp_response=$(mktemp)
       temp_stderr=$(mktemp)
       trap "rm -f $temp_response $temp_stderr" EXIT
+
+
+      # Check if cookie file exists from api_client module
+      cookie_file="${var.api_config.cookie_file}"
+      if [ ! -f "$cookie_file" ]; then
+        echo "❌ Session cookie file not found: $cookie_file"
+        echo "Make sure api_client module has been applied first"
+        exit 1
+      fi
       
-      # Run curl without verbose output mixing with response
-      http_code=$(curl --http1.1 -s -b "$cookie_jar" -w "%%{http_code}" -X POST \
+      echo "Using cached session cookies from: $cookie_file"
+      
+      # Run curl with cached token
+      http_code=$(curl --http1.1 -s -w "%%{http_code}" -X POST \
         "${var.api_config.base_url}/api/v1/watch-tower-setting?projectName=${var.project_name}&customerName=${var.api_config.username}" \
         -H "Content-Type: application/json" \
-        -H "X-CSRF-TOKEN: $token" \
+        -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
+        -b "$cookie_file" \
         -d "$config_json" \
         -o "$temp_response" 2>"$temp_stderr")
       
@@ -336,5 +330,6 @@ resource "null_resource" "apply_config" {
     config_hash  = sha256(local_file.config.content)
     project_name = var.project_name
     username     = var.api_config.username
+    auth_token   = var.api_config.auth_token
   }
 }

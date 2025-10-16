@@ -37,14 +37,46 @@ module "project_config" {
   api_config                = module.api_client.auth_config
 }
 
+# ServiceNow Configuration Module - Configures ServiceNow integration
+module "servicenow_config" {
+  count  = var.servicenow_config != null ? 1 : 0
+  source = "./modules/servicenow_config"
+  
+  servicenow_config = var.servicenow_config != null ? merge(var.servicenow_config, {
+    # Map user-facing client_id/client_secret to API app_id/app_key
+    app_id  = var.servicenow_config.client_id
+    app_key = var.servicenow_config.client_secret
+  }) : null
+  api_config        = module.api_client.auth_config
+  
+  # Ensure authentication is completed first
+  depends_on = [module.api_client]
+}
+
 # Output configuration status
 output "configuration_status" {
   description = "Configuration application status"
   value = {
-    project_name       = var.project_config != null ? var.project_config.project_name : null
-    project_configured = var.project_config != null
+    project_name         = var.project_config != null ? var.project_config.project_name : null
+    project_configured   = var.project_config != null
     create_if_not_exists = var.project_config != null ? try(var.project_config.create_if_not_exists, false) : false
-    applied_at         = timestamp()
+    servicenow_configured = var.servicenow_config != null
+    applied_at           = timestamp()
   }
-  depends_on = [module.project_config]
+  sensitive  = true
+  depends_on = [module.project_config, module.servicenow_config]
+}
+
+# ServiceNow configuration output
+output "servicenow_status" {
+  description = "ServiceNow integration configuration status"
+  value = var.servicenow_config != null ? {
+    configured    = true
+    service_host  = var.servicenow_config.service_host
+    account      = var.servicenow_config.account
+    client_id    = var.servicenow_config.client_id
+    system_count = length(var.servicenow_config.system_names)
+  } : null
+  sensitive  = true
+  depends_on = [module.servicenow_config]
 }

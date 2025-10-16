@@ -6,6 +6,7 @@ A production-ready Terraform module for managing InsightFinder projects using In
 
 - **Unified Project Management**: Create and configure projects with a single, simplified interface
 - **Smart Project Creation**: Create projects automatically when they don't exist using `create_if_not_exists`
+- **ServiceNow Integration**: Configure ServiceNow integration with automatic system name resolution
 - **Flexible Configuration**: Configure projects with advanced monitoring settings
 - **Environment Support**: Support for different environments (dev/staging/production)
 - **Type Safety**: Terraform validates configuration before deployment
@@ -23,11 +24,7 @@ export TF_VAR_license_key="your_insightfinder_license_key"
 
 ### 2. Choose Your Use Case
 
-Pick the example that matches your needs:
-
-- **Create a new project only**: `examples/create-project.tfvars`
-- **Configure existing project**: `examples/configure-project.tfvars`  
-- **Create and configure together**: `examples/create-and-configure.tfvars`
+- **Complete project + ServiceNow setup**: `examples/project-with-servicenow.tfvars`
 
 ### 3. Deploy
 
@@ -139,6 +136,62 @@ project_config = {
 }
 ```
 
+### 4. ServiceNow Integration
+
+Use this to configure ServiceNow integration for incident management:
+
+```hcl
+# examples/servicenow-config.tfvars
+base_url = "https://app.insightfinder.com"
+username = "your_username"
+
+servicenow_config = {
+  service_host      = "your-instance.service-now.com"
+  account          = "servicenow_username"
+  password         = "servicenow_password"
+  dampening_period = 7200000
+  client_id        = "your_client_id"
+  client_secret    = "your_client_secret"
+  system_names     = ["Production System", "Development System"]  # Human-readable names
+  options          = ["Root Cause"]  # Options: "Detected Incident", "Detected Incident with RCA", "Predicted Incident", "Root Cause"
+  content_option   = ["SUMMARY"]   # Options: "SUMMARY", "RECOMMENDATION"
+}
+```
+
+> **🎯 System Name Resolution**: The module automatically resolves human-readable system names to system IDs by querying the InsightFinder API. This improves usability by allowing you to specify descriptive names instead of cryptic system IDs.
+
+### 5. Complete Project + ServiceNow Setup
+
+Use this for end-to-end setup with ServiceNow integration:
+
+```hcl
+# examples/project-with-servicenow.tfvars
+base_url = "https://app.insightfinder.com"
+username = "your_username"
+
+project_config = {
+  project_name         = "production-monitoring"
+  create_if_not_exists = true
+  
+  project_creation_config = {
+    system_name = "production-system"
+    data_type   = "Metric"
+    # ... other settings
+  }
+  
+  # Project configuration
+  projectDisplayName = "Production Monitoring with ServiceNow"
+  # ... other project settings
+}
+
+servicenow_config = {
+  service_host     = "production.service-now.com"
+  account         = "prod_servicenow_user"
+  password        = "servicenow_password"
+  # ... other ServiceNow settings
+}
+```
+
 ## 🔧 Variables Reference
 
 ### Required Variables
@@ -155,11 +208,12 @@ project_config = {
 |----------|------|---------|-------------|
 | `base_url` | string | `"https://app.insightfinder.com"` | InsightFinder API URL |
 
-### Configuration Object
+### Configuration Objects
 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `project_config` | object | Project configuration settings with optional creation parameters |
+| `servicenow_config` | object | ServiceNow integration configuration (optional) |
 
 #### Project Config Object Structure
 
@@ -170,14 +224,20 @@ The `project_config` object supports:
 - **project_creation_config** (object, required if create_if_not_exists=true): Creation parameters
 - **All OpenAPI project configuration fields**: Any field from the InsightFinder API spec
 
-## 📁 Examples
+#### ServiceNow Config Object Structure
 
-The module includes three focused example files:
+The `servicenow_config` object supports:
 
-- **`examples/create-project.tfvars`**: Create new project with minimal configuration
-- **`examples/configure-project.tfvars`**: Configure existing project only  
-- **`examples/create-and-configure.tfvars`**: Create and configure in one step
-- **`external-usage-example/`**: Complete external module usage example
+- **service_host** (string, required): ServiceNow instance hostname
+- **account** (string, required): ServiceNow username
+- **password** (string, required): ServiceNow password
+- **app_id** (string, required): ServiceNow application ID
+- **app_key** (string, required): ServiceNow application key
+- **system_names** (list(string), required): List of human-readable system names (automatically resolved to system IDs)
+- **proxy** (string, optional): Proxy server (default: "")
+- **dampening_period** (number, optional): Dampening period in seconds (default: 300)
+- **options** (list(string), optional): Integration options (default: [])
+- **content_option** (list(string), optional): Content options (default: [])
 
 ## 🏗️ Module Structure
 
@@ -188,10 +248,13 @@ terraform/
 ├── examples/
 │   ├── create-project.tfvars         # Create project only
 │   ├── configure-project.tfvars      # Configure existing project
-│   └── create-and-configure.tfvars   # Create and configure together
+│   ├── create-and-configure.tfvars   # Create and configure together
+│   ├── servicenow-config.tfvars      # ServiceNow integration only
+│   └── project-with-servicenow.tfvars # Complete project + ServiceNow
 ├── modules/
-│   ├── api_client/                   # Shared authentication
-│   └── project_config/               # Unified project management
+│   ├── api_client/                   # Shared authentication & token caching
+│   ├── project_config/               # Unified project management
+│   └── servicenow_config/            # ServiceNow integration
 └── external-usage-example/           # External module usage demo
     ├── main.tf                       # Module integration
     ├── variables.tf                  # Custom variables
@@ -207,16 +270,6 @@ terraform/
 # Set sensitive values via environment
 export TF_VAR_password="your-secure-password"
 export TF_VAR_license_key="your-secure-license-key"
-```
-
-### .gitignore
-
-```gitignore
-# Terraform
-*.tfstate
-*.tfstate.*
-*.tfvars
-.terraform/
 ```
 
 ## 🚨 Troubleshooting

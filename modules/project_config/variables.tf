@@ -14,6 +14,8 @@ variable "api_config" {
     username    = string
     password    = string
     license_key = string
+    auth_token  = string
+    cookie_file = optional(string)
   })
   sensitive = true
 }
