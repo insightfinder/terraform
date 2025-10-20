@@ -1,320 +1,325 @@
-# InsightFinder Terraform Configuration Module
+# InsightFinder Terraform Module
 
-This Terraform module provides a clean, flexible way to manage InsightFinder project configurations using Infrastructure as Code (IaC) principles.
+A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.
 
-## Table of Contents
+## ✨ Features
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Configuration Methods](#configuration-methods)
-- [Step-by-Step Guide](#step-by-step-guide)
-- [Configuration Examples](#configuration-examples)
-- [Variables Reference](#variables-reference)
-- [Files Structure](#files-structure)
-- [Troubleshooting](#troubleshooting)
-
-## Features
-
-- **Flexible Configuration**: Use simple individual variables or the comprehensive `project_config` object
-- **Future-Proof**: Automatically supports any new configuration fields added to InsightFinder
+- **Unified Project Management**: Create and configure projects with a single, simplified interface
+- **Smart Project Creation**: Create projects automatically when they don't exist using `create_if_not_exists`
+- **ServiceNow Integration**: Configure ServiceNow integration with automatic system name resolution
+- **Flexible Configuration**: Configure projects with advanced monitoring settings
+- **Environment Support**: Support for different environments (dev/staging/production)
 - **Type Safety**: Terraform validates configuration before deployment
-- **Environment Management**: Easy management across different environments (dev, staging, prod)
-- **Conditional Fields**: Only sends non-null values to avoid overriding defaults
-- **Clean & Maintainable**: Well-structured code that's easy to understand and modify
+- **Error Handling**: Robust error checking and validation
+- **Future-Proof**: Supports any OpenAPI fields without code changes
 
-## Prerequisites
+## 🚀 Quick Start
 
-1. **Terraform**: Version >= 1.0
-   ```bash
-   terraform --version
-   ```
+### 1. Set Credentials
 
-2. **InsightFinder Account**: Active account with project creation permissions
-
-3. **Network Access**: Connectivity to InsightFinder API (`https://app.insightfinder.com`)
-
-4. **Required Tools**: `curl` (used by the apply-config.sh script)
-
-## Quick Start
-
-1. **Clone or download this module**
-2. **Set your password as environment variable**:
-   ```bash
-   export TF_VAR_password="your_insightfinder_password"
-   ```
-3. **Run with minimal configuration**:
-   ```bash
-   terraform init
-   terraform plan -var-file="examples/minimal.tfvars"
-   terraform apply -var-file="examples/minimal.tfvars"
-   ```
-
-## Configuration Methods
-
-### Method 1: Individual Variables (Simple)
-Best for basic configurations with standard fields:
-
-```hcl
-# Connection settings
-username = "your_username"
-project_name = "my-project"
-
-# Configuration using individual variables
-cValue = 3
-pValue = 0.95
-projectDisplayName = "My Project"
-retentionTime = 90
-samplingInterval = 600
-showInstanceDown = false
+```bash
+export TF_VAR_password="your_insightfinder_password"
+export TF_VAR_license_key="your_insightfinder_license_key"
 ```
 
-### Method 2: Project Config Object (Recommended)
-Best for complex configurations and future-proofing:
+### 2. Choose Your Use Case
+
+- **Complete project + ServiceNow setup**: `examples/example.tfvars`
+
+### 3. Deploy
+
+```bash
+# Copy and modify the appropriate example
+cp examples/example.tfvars my-config.tfvars
+# Edit my-config.tfvars with your settings
+
+# Deploy
+terraform init
+terraform plan -var-file="my-config.tfvars"
+terraform apply -var-file="my-config.tfvars"
+```
+
+## 📋 Configuration Examples
+
+### 1. Create New Project Only
+
+Use this when you only want to create a project without additional configuration:
 
 ```hcl
-# Connection settings
+# examples/example.tfvars
+base_url = "https://stg.insightfinder.com"
 username = "your_username"
-project_name = "my-project"
 
-# All configuration in one flexible object
 project_config = {
-  # Core fields
-  cValue = 3
-  pValue = 0.95
-  projectDisplayName = "My Project"
-  retentionTime = 90
+  project_name         = "my-new-metrics-project"
+  create_if_not_exists = true
   
-  # Advanced fields
-  UBLRetentionTime = 8
-  enableUBLDetect = true
-  dynamicBaselineDetectionFlag = true
-  
-  # Any future fields work automatically without code changes
-  # newFeature = "enabled"
+  project_creation_config = {
+    system_name         = "production-monitoring-cluster"
+    data_type          = "Metric"
+    instance_type      = "OnPremise"
+    project_cloud_type = "OnPremise"
+    insight_agent_type = "collectd"
+  }
 }
 ```
 
-## Step-by-Step Guide
+### 2. Configure Existing Project
 
-### 1. Initial Setup
+Use this when you want to configure an existing project:
 
-```bash
-# Navigate to the terraform directory
-cd /path/to/terraform
-
-# Initialize Terraform (downloads required providers)
-terraform init
-```
-
-### 2. Set Authentication
-
-```bash
-# Set your InsightFinder password as environment variable
-export TF_VAR_password="your_password_here"
-
-# Verify it's set (should show your password)
-echo $TF_VAR_password
-```
-
-### 3. Choose Configuration Method
-
-**Option A: Use existing example file**
-```bash
-# Copy an example file and modify it
-cp examples/minimal.tfvars my-config.tfvars
-# Edit my-config.tfvars with your details
-```
-
-**Option B: Create custom configuration file**
-```bash
-# Create your own .tfvars file
-cat > my-config.tfvars << EOF
+```hcl
+# examples/example.tfvars
+base_url = "https://stg.insightfinder.com"
 username = "your_username"
-project_name = "my-project-name"
+
+project_config = {
+  project_name         = "existing-project-name"
+  create_if_not_exists = false  # Don't create - expect it to exist
+  
+  projectDisplayName = "Production Monitoring"
+  cValue             = 3
+  pValue             = 0.95
+  retentionTime      = 90
+  samplingInterval   = 600
+  
+  # Advanced settings
+  dynamicBaselineDetectionFlag = true
+  enableUBLDetect = true
+  
+  # Instance grouping
+  instanceGroupingUpdate = {
+    instanceDataList = [
+      {
+        instanceName        = "web-server-01"
+        instanceDisplayName = "Web Server 1"
+        appName            = "frontend"
+        component          = "web-service"
+        ignoreFlag         = false
+      }
+    ]
+  }
+}
+```
+
+### 3. Create and Configure Together
+
+Use this for end-to-end project setup:
+
+```hcl
+# examples/example.tfvars
+base_url = "https://stg.insightfinder.com"
+username = "your_username"
+
+project_config = {
+  project_name         = "web-app-monitoring"
+  create_if_not_exists = true
+  
+  # Project creation settings
+  project_creation_config = {
+    system_name         = "production-web-cluster"
+    data_type          = "Metric"
+    instance_type      = "OnPremise"
+    project_cloud_type = "OnPremise"
+    insight_agent_type = "collectd"
+  }
+  
+  # Project configuration
+  projectDisplayName = "Web Application Monitoring"
+  cValue             = 3
+  pValue             = 0.95
+  retentionTime      = 90
+  samplingInterval   = 600
+  
+  # Advanced settings
+  dynamicBaselineDetectionFlag = true
+  enableUBLDetect = true
+  enableCumulativeDetect = false
+  modelSpan = 0
+  
+  # Metric-specific configuration
+  componentMetricSettingOverallModelList = [
+    {
+      metricName                        = "cpu_usage"
+      escalateIncidentAll              = true
+      thresholdAlertLowerBound         = 15
+      thresholdAlertUpperBound         = 85
+      thresholdNoAlertLowerBound       = 30
+      thresholdNoAlertUpperBound       = 70
+    }
+  ]
+}
+```
+
+### 4. ServiceNow Integration
+
+Use this to configure ServiceNow integration for incident management:
+
+```hcl
 base_url = "https://app.insightfinder.com"
+username = "your_username"
 
-cValue = 3
-pValue = 0.95
-projectDisplayName = "My Custom Project"
-retentionTime = 90
-samplingInterval = 600
-showInstanceDown = false
-EOF
+servicenow_config = {
+  service_host      = "your-instance.service-now.com"
+  account          = "servicenow_username"
+  password         = "servicenow_password"
+  dampening_period = 7200000
+  client_id        = "your_client_id"
+  client_secret    = "your_client_secret"
+  system_names     = ["Production System", "Development System"]
+  options          = ["Root Cause"]  # Options: "Detected Incident", "Detected Incident with RCA", "Predicted Incident", "Root Cause"
+  content_option   = ["SUMMARY"]   # Options: "SUMMARY", "RECOMMENDATION"
+}
 ```
 
-### 4. Plan and Apply
+> **🎯 System Name Resolution**: The module automatically resolves human-readable system names to system IDs by querying the InsightFinder API. This improves usability by allowing you to specify descriptive names instead of cryptic system IDs.
 
-```bash
-# Plan - shows what will be created/changed
-terraform plan -var-file="my-config.tfvars"
+### 5. Complete Project + ServiceNow Setup
 
-# Apply - actually creates/updates the configuration
-terraform apply -var-file="my-config.tfvars"
+Use this for end-to-end setup with ServiceNow integration:
 
-# Auto-approve to skip confirmation (use with caution)
-terraform apply -var-file="my-config.tfvars" -auto-approve
+```hcl
+base_url = "https://app.insightfinder.com"
+username = "your_username"
+
+project_config = {
+  project_name         = "production-monitoring"
+  create_if_not_exists = true
+  
+  project_creation_config = {
+    system_name = "production-system"
+    data_type   = "Metric"
+    # ... other settings
+  }
+  
+  # Project configuration
+  projectDisplayName = "Production Monitoring with ServiceNow"
+  # ... other project settings
+}
+
+servicenow_config = {
+  service_host     = "production.service-now.com"
+  account         = "prod_servicenow_user"
+  password        = "servicenow_password"
+  # ... other ServiceNow settings
+}
 ```
 
-### 5. Verify Configuration
-
-```bash
-# Check the generated configuration file
-cat generated-config.json
-
-# View Terraform outputs
-terraform output
-```
-
-### 6. Managing Changes
-
-```bash
-# Make changes to your .tfvars file, then:
-terraform plan -var-file="my-config.tfvars"   # Review changes
-terraform apply -var-file="my-config.tfvars"  # Apply changes
-```
-
-### 7. Cleanup (if needed)
-
-```bash
-# Remove all resources created by this module
-terraform destroy -var-file="my-config.tfvars"
-```
-
-## Configuration Examples
-
-### Minimal Configuration
-File: `examples/minimal.tfvars`
-```bash
-terraform apply -var-file="examples/minimal.tfvars"
-```
-
-### Basic Configuration with Individual Variables
-File: `examples/basic.tfvars`
-```bash
-terraform apply -var-file="examples/basic.tfvars"
-```
-
-### Flexible Configuration with project_config
-File: `examples/flexible.tfvars`
-```bash
-terraform apply -var-file="examples/flexible.tfvars"
-```
-
-### Advanced Configuration with Complex Settings
-File: `examples/advanced.tfvars`
-```bash
-terraform apply -var-file="examples/advanced.tfvars"
-```
-
-## Variables Reference
+## 🔧 Variables Reference
 
 ### Required Variables
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `username` | string | Your InsightFinder username |
-| `password` | string | Your InsightFinder password (set via `TF_VAR_password`) |
-| `project_name` | string | Target project name in InsightFinder |
+| `username` | string | InsightFinder username |
+| `password` | string | InsightFinder password (via `TF_VAR_password`) |
+| `license_key` | string | InsightFinder license key (via `TF_VAR_license_key`) |
 
-### Optional Variables
-
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `base_url` | string | `"https://app.insightfinder.com"` | InsightFinder API base URL |
-| `project_config` | object | `{}` | Flexible configuration object supporting any field |
-
-### Individual Configuration Variables (Optional)
+### Connection Variables
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `cValue` | number | `null` | Continues value for project (count) |
-| `pValue` | number | `null` | Probability threshold value for UBL |
-| `showInstanceDown` | bool | `null` | Show instance down incidents |
-| `retentionTime` | number | `null` | Data retention time in days |
-| `projectDisplayName` | string | `null` | Display name of the project |
-| `samplingInterval` | number | `null` | Sampling interval in seconds |
-| `UBLRetentionTime` | number | `null` | UBL retention time in days |
-| `highRatioCValue` | number | `null` | High ratio C value |
-| `dynamicBaselineDetectionFlag` | bool | `null` | Enable dynamic baseline detection |
-| `enableUBLDetect` | bool | `null` | Enable UBL detection |
-| `enableCumulativeDetect` | bool | `null` | Enable cumulative detection |
+| `base_url` | string | `"https://app.insightfinder.com"` | InsightFinder API URL |
 
-## Files Structure
+### Configuration Objects
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `project_config` | object | Project configuration settings with optional creation parameters |
+| `servicenow_config` | object | ServiceNow integration configuration (optional) |
+
+#### Project Config Object Structure
+
+The `project_config` object supports:
+
+- **project_name** (string, required): Project name
+- **create_if_not_exists** (bool, optional): Create project if it doesn't exist
+- **project_creation_config** (object, required if create_if_not_exists=true): Creation parameters
+- **All OpenAPI project configuration fields**: Any field from the InsightFinder API spec
+
+#### ServiceNow Config Object Structure
+
+The `servicenow_config` object supports:
+
+- **service_host** (string, required): ServiceNow instance hostname
+- **account** (string, required): ServiceNow username
+- **password** (string, required): ServiceNow password
+- **client_id** (string, optional): ServiceNow application client ID
+- **client_secret** (string, optional): ServiceNow application client secret
+- **system_names** (list(string), required): List of human-readable system names (automatically resolved to system IDs)
+- **proxy** (string, optional): Proxy server (default: "")
+- **dampening_period** (number, required): Dampening period in seconds
+- **options** (list(string), optional): Integration options (default: [])
+- **content_option** (list(string), optional): Content options (default: [])
+
+## 🏗️ Module Structure
 
 ```
 terraform/
-├── main.tf                    # Main Terraform configuration
-├── apply-config.sh           # Script for applying config via API
-├── README.md                 # This documentation
-├── VERSION                   # Version information
-├── CHANGELOG.md             # Change history
-├── LICENSE                  # License information
-└── examples/
-    ├── minimal.tfvars       # Simple example with essential fields
-    ├── basic.tfvars         # Basic example with additional fields
-    ├── flexible.tfvars      # Flexible approach using project_config
-    └── advanced.tfvars      # Complex configuration with metric settings
+├── main.tf                           # Main module orchestration
+├── variables.tf                      # Variable definitions  
+├── examples/
+│   └── example.tfvars                # Complete project + ServiceNow
+├── modules/
+│   ├── api_client/                   # Shared authentication & token caching
+│   ├── project_config/               # Unified project management
+│   └── servicenow_config/            # ServiceNow integration
+└── external-usage-example/           # External module usage demo
+    ├── main.tf                       # Module integration
+    ├── variables.tf                  # Custom variables
+    ├── dev.tfvars                    # Development config
+    └── prod.tfvars                   # Production config
 ```
 
-## Troubleshooting
+## 🔒 Security Best Practices
 
-### Common Issues and Solutions
+### Environment Variables
 
-**1. Authentication Errors**
 ```bash
-# Ensure password is set correctly
+# Set sensitive values via environment
+export TF_VAR_password="your-secure-password"
+export TF_VAR_license_key="your-secure-license-key"
+```
+
+## 🚨 Troubleshooting
+
+### Authentication Errors
+
+```bash
+# Ensure credentials are set correctly
 export TF_VAR_password="your_actual_password"
+export TF_VAR_license_key="your_actual_license_key"
 
-# Verify username and base_url are correct
+# Verify they're set
+echo $TF_VAR_password
+echo $TF_VAR_license_key
 ```
 
-**2. Variable Not Declared Errors**
-```
-Error: Value for undeclared variable
-```
-Solution: Make sure all variables in your .tfvars file are declared in main.tf
+### Project Not Found Errors
 
-**3. Connection Errors**
-```bash
-# Check network connectivity
-curl -I https://app.insightfinder.com
+- Ensure the project name exists if `create_if_not_exists = false`
+- Set `create_if_not_exists = true` to create missing projects automatically
+- Use staging URL for testing: `base_url = "https://stg.insightfinder.com"`
 
-# Verify base_url is correct in your configuration
-```
+### Rate Limiting
 
-**4. Project Not Found**
-- Ensure the project exists in InsightFinder
-- Verify project_name matches exactly (case-sensitive)
+- The API has rate limiting protection
+- Add delays between successive deployments during testing
+- Use proper credentials to avoid authentication failures
 
-**5. Permission Denied**
-- Verify your user has permission to modify the project
-- Check if you need admin privileges for certain configuration changes
+### Configuration Not Applied
 
-### Debug Mode
+- Ensure `project_config` is properly defined with required parameters
+- Check that the project name matches exactly
+- Verify the API returns HTTP 200 status
 
-Enable detailed logging:
-```bash
-# Set Terraform log level
-export TF_LOG=DEBUG
+## 🔗 API Integration
 
-# Run terraform with verbose output
-terraform apply -var-file="my-config.tfvars" -auto-approve
-```
+- **Authentication**: `POST /api/v1/login-check`
+- **Project Creation**: `POST /api/v1/check-and-add-custom-project`
+- **Project Configuration**: `POST /api/v1/watch-tower-setting`
+- **Error Handling**: Robust validation and meaningful error messages
 
-### Getting Help
+## 📄 License
 
-1. **Check Terraform plan output**: `terraform plan -var-file="your-config.tfvars"`
-2. **Validate configuration**: `terraform validate`
-3. **Check generated config**: `cat generated-config.json`
-4. **Review apply-config.sh logs**: Check terminal output during apply
-
-## How It Works
-
-1. **Configuration Merging**: Individual variables are merged with `project_config` (project_config takes precedence)
-2. **Null Filtering**: Only non-null values are included in the final JSON configuration
-3. **File Generation**: Creates `generated-config.json` with the final configuration
-4. **API Application**: Uses `apply-config.sh` script to apply configuration via InsightFinder API
-5. **State Management**: Terraform tracks the configuration state for future updates
-
-This module is designed to be production-ready, maintainable, and future-proof for all your InsightFinder project configuration needs.
+See [LICENSE](LICENSE) file for details.
