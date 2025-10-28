@@ -53,6 +53,18 @@ module "servicenow_config" {
   depends_on = [module.api_client]
 }
 
+# JWT Configuration Module - Configures JWT token settings
+module "jwt_config" {
+  count  = var.jwt_config != null ? 1 : 0
+  source = "./modules/jwt_config"
+  
+  jwt_config = var.jwt_config
+  api_config = module.api_client.auth_config
+  
+  # Ensure authentication is completed first
+  depends_on = [module.api_client]
+}
+
 # Output configuration status
 output "configuration_status" {
   description = "Configuration application status"
@@ -61,10 +73,11 @@ output "configuration_status" {
     project_configured   = var.project_config != null
     create_if_not_exists = var.project_config != null ? try(var.project_config.create_if_not_exists, false) : false
     servicenow_configured = var.servicenow_config != null
+    jwt_configured       = var.jwt_config != null
     applied_at           = timestamp()
   }
   sensitive  = true
-  depends_on = [module.project_config, module.servicenow_config]
+  depends_on = [module.project_config, module.servicenow_config, module.jwt_config]
 }
 
 # ServiceNow configuration output
@@ -79,4 +92,16 @@ output "servicenow_status" {
   } : null
   sensitive  = true
   depends_on = [module.servicenow_config]
+}
+
+# JWT configuration output
+output "jwt_status" {
+  description = "JWT configuration status"
+  value = var.jwt_config != null ? {
+    configured    = true
+    system_name   = var.jwt_config.system_name
+    secret_length = length(var.jwt_config.jwt_secret)
+  } : null
+  sensitive  = true
+  depends_on = [module.jwt_config]
 }

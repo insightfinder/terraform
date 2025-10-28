@@ -7,6 +7,7 @@ A production-ready Terraform module for managing InsightFinder projects using In
 - **Unified Project Management**: Create and configure projects with a single, simplified interface
 - **Smart Project Creation**: Create projects automatically when they don't exist using `create_if_not_exists`
 - **ServiceNow Integration**: Configure ServiceNow integration with automatic system name resolution
+- **JWT Token Configuration**: Configure JWT token settings for system-level authentication
 - **Flexible Configuration**: Configure projects with advanced monitoring settings
 - **Environment Support**: Support for different environments (dev/staging/production)
 - **Type Safety**: Terraform validates configuration before deployment
@@ -25,6 +26,7 @@ export TF_VAR_license_key="your_insightfinder_license_key"
 ### 2. Choose Your Use Case
 
 - **Complete project + ServiceNow setup**: `examples/example.tfvars`
+- **JWT token configuration**: Configure JWT secrets for system authentication
 
 ### 3. Deploy
 
@@ -174,7 +176,23 @@ servicenow_config = {
 
 > **🎯 System Name Resolution**: The module automatically resolves human-readable system names to system IDs by querying the InsightFinder API. This improves usability by allowing you to specify descriptive names instead of cryptic system IDs.
 
-### 5. Complete Project + ServiceNow Setup
+### 5. JWT Token Configuration
+
+Use this to configure JWT token settings for system-level authentication:
+
+```hcl
+base_url = "https://app.insightfinder.com"
+username = "your_username"
+
+jwt_config = {
+  jwt_secret  = "your-jwt-secret-key"  # Minimum 6 characters required
+  system_name = "Production System"    # System name to configure JWT for
+}
+```
+
+> **🔐 JWT Security**: The JWT secret must be at least 6 characters long. The module automatically resolves system names to system IDs and configures the JWT token using the InsightFinder API endpoint `/api/v2/systemframework`.
+
+### 6. Complete Project + ServiceNow Setup
 
 Use this for end-to-end setup with ServiceNow integration:
 
@@ -205,6 +223,38 @@ servicenow_config = {
 }
 ```
 
+### 7. Multi-Service Configuration
+
+Use this to configure multiple services together:
+
+```hcl
+base_url = "https://app.insightfinder.com"
+username = "your_username"
+
+# Project configuration
+project_config = {
+  project_name         = "production-monitoring"
+  create_if_not_exists = true
+  projectDisplayName   = "Production System Monitoring"
+  # ... other project settings
+}
+
+# ServiceNow integration
+servicenow_config = {
+  service_host = "production.service-now.com"
+  account     = "servicenow_user"
+  password    = "servicenow_password"
+  system_names = ["Production System"]
+  # ... other ServiceNow settings
+}
+
+# JWT token configuration
+jwt_config = {
+  jwt_secret  = "secure-jwt-secret-key-123"
+  system_name = "Production System"
+}
+```
+
 ## 🔧 Variables Reference
 
 ### Required Variables
@@ -227,6 +277,7 @@ servicenow_config = {
 |----------|------|-------------|
 | `project_config` | object | Project configuration settings with optional creation parameters |
 | `servicenow_config` | object | ServiceNow integration configuration (optional) |
+| `jwt_config` | object | JWT token configuration (optional) |
 
 #### Project Config Object Structure
 
@@ -252,6 +303,13 @@ The `servicenow_config` object supports:
 - **options** (list(string), optional): Integration options (default: [])
 - **content_option** (list(string), optional): Content options (default: [])
 
+#### JWT Config Object Structure
+
+The `jwt_config` object supports:
+
+- **jwt_secret** (string, required): JWT secret key (minimum 6 characters)
+- **system_name** (string, required): Human-readable system name (automatically resolved to system ID)
+
 ## 🏗️ Module Structure
 
 ```
@@ -263,7 +321,8 @@ terraform/
 ├── modules/
 │   ├── api_client/                   # Shared authentication & token caching
 │   ├── project_config/               # Unified project management
-│   └── servicenow_config/            # ServiceNow integration
+│   ├── servicenow_config/            # ServiceNow integration
+│   └── jwt_config/                   # JWT token configuration
 └── external-usage-example/           # External module usage demo
     ├── main.tf                       # Module integration
     ├── variables.tf                  # Custom variables
@@ -313,11 +372,21 @@ echo $TF_VAR_license_key
 - Check that the project name matches exactly
 - Verify the API returns HTTP 200 status
 
+### JWT Configuration Issues
+
+- Ensure JWT secret is at least 6 characters long
+- Verify the system name exists in your InsightFinder account
+- Check that the system name resolves to a valid system ID
+- Ensure proper authentication credentials are provided
+
 ## 🔗 API Integration
 
 - **Authentication**: `POST /api/v1/login-check`
 - **Project Creation**: `POST /api/v1/check-and-add-custom-project`
 - **Project Configuration**: `POST /api/v1/watch-tower-setting`
+- **ServiceNow Integration**: `POST /api/v1/service-integration`
+- **JWT Configuration**: `POST /api/v2/systemframework`
+- **System Resolution**: `GET /api/v2/systemframework`
 - **Error Handling**: Robust validation and meaningful error messages
 
 ## 📄 License
