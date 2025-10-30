@@ -51,3 +51,23 @@ variable "servicenow_config" {
   default   = null
   sensitive = true
 }
+
+# JWT Configuration Block
+variable "jwt_config" {
+  description = "JWT token configuration object"
+  type = object({
+    jwt_secret  = string  # JWT secret key (minimum 6 characters)
+    system_name = string  # System name to configure JWT for (will be resolved to system ID)
+  })
+  default   = null
+  sensitive = true
+  
+  validation {
+    condition = var.jwt_config == null || (
+      var.jwt_config.jwt_secret != "" && 
+      var.jwt_config.system_name != "" &&
+      length(var.jwt_config.jwt_secret) >= 6
+    )
+    error_message = "When jwt_config is provided, jwt_secret must be at least 6 characters and system_name cannot be empty."
+  }
+}

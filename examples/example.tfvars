@@ -128,13 +128,29 @@ servicenow_config = {
 }
 
 # ==========================================
+# JWT Token Configuration
+# ==========================================
+jwt_config = {
+  jwt_secret  = "your-jwt-secret-key"  # Minimum 6 characters required
+  system_name = "Test System 1"       # System name to configure JWT for (must exist in your InsightFinder account)
+}
+
+# ==========================================
 # DEPLOYMENT INSTRUCTIONS
 # ==========================================
 # 1. Set your credentials:
 #    export TF_VAR_password="your_insightfinder_password"
 #    export TF_VAR_license_key="your_license_key"
 # 
-# 2. Run terraform:
+# 2. Configure services (choose what you need):
+#    - Project configuration: Update project_config block above
+#    - ServiceNow integration: Update servicenow_config block above  
+#    - JWT token settings: Update jwt_config block above
+#
+# 3. Run terraform:
 #    terraform init
-#    terraform plan -var-file="examples/configure-project.tfvars"
-#    terraform apply -var-file="examples/configure-project.tfvars"
+#    terraform plan -var-file="examples/example.tfvars"
+#    terraform apply -var-file="examples/example.tfvars"
+#
+# Note: You can use any combination of the configurations above.
+# Simply comment out or remove the blocks you don't need.
