@@ -1,5 +1,6 @@
 # InsightFinder Terraform Configuration
 # This module provides clean, structured configuration for InsightFinder projects
+# Module Version: 1.1.0
 
 terraform {
   required_version = ">= 1.0"
@@ -13,6 +14,11 @@ terraform {
       version = "~> 3.0"
     }
   }
+}
+
+# Read module version from VERSION file
+locals {
+  module_version = trimspace(file("${path.module}/VERSION"))
 }
 
 # API Client Module - Provides shared authentication configuration
@@ -104,4 +110,14 @@ output "jwt_status" {
   } : null
   sensitive  = true
   depends_on = [module.jwt_config]
+}
+
+# Module version output
+output "module_version" {
+  description = "InsightFinder Terraform Module version"
+  value = {
+    version     = local.module_version
+    changelog   = "See CHANGELOG.md for version history"
+    source      = "https://github.com/insightfinder/terraform"
+  }
 }
