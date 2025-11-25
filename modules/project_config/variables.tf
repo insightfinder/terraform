@@ -196,7 +196,7 @@ variable "patternIdGenerationRule" {
   type        = number
   default     = null
   validation {
-    condition     = var.patternIdGenerationRule == null || contains([0, 1], var.patternIdGenerationRule)
+    condition     = var.patternIdGenerationRule == null || (var.patternIdGenerationRule == 0 || var.patternIdGenerationRule == 1)
     error_message = "Pattern ID generation rule must be 0 or 1."
   }
 }
