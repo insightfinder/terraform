@@ -18,21 +18,21 @@ variable "api_config" {
 variable "jwt_config" {
   description = "JWT token configuration"
   type = object({
-    jwt_secret  = string                # Required: JWT secret key
-    system_name = string                # Required: System name to resolve to system ID
+    jwt_secret  = string # Required: JWT secret key
+    system_name = string # Required: System name to resolve to system ID
   })
   sensitive = true
-  
+
   validation {
     condition     = length(var.jwt_config.jwt_secret) >= 6
     error_message = "JWT secret must be at least 6 characters long to meet minimum security requirements."
   }
-  
+
   validation {
     condition     = var.jwt_config.jwt_secret != ""
     error_message = "JWT secret cannot be empty."
   }
-  
+
   validation {
     condition     = var.jwt_config.system_name != ""
     error_message = "System name cannot be empty."

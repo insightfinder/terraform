@@ -55,7 +55,7 @@ output "auth_config" {
     auth_token  = data.external.auth_token.result.token
     cookie_file = "/tmp/insightfinder-cookies-${md5("${var.base_url}:${var.username}")}.txt"
   }
-  sensitive = true
+  sensitive  = true
   depends_on = [null_resource.authenticate_and_cache]
 }
 

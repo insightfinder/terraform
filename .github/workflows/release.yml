@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        TAG=${GITHUB_REF#refs/tags/v}
+        echo "version=$TAG" >> $GITHUB_OUTPUT
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Validate version matches VERSION file
+      run: |
+        FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+        TAG_VERSION="${{ steps.version.outputs.version }}"
+        
+        if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+          echo "❌ Version mismatch!"
+          echo "VERSION file: $FILE_VERSION"
+          echo "Git tag: $TAG_VERSION"
+          exit 1
+        fi
+        echo "✅ Version matches: $FILE_VERSION"
+    
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Extract changelog section for this version
+        CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '1d;$d')
+        
+        # Save to file for GitHub release
+        echo "$CHANGELOG" > release_notes.md
+        
+        # Debug output
+        echo "Release notes for version $VERSION:"
+        cat release_notes.md
+    
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+    
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+    
+    - name: Terraform Validate
+      run: |
+        terraform init -backend=false
+        terraform validate
+    
+    - name: Archive release
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        tar -czf insightfinder-terraform-${VERSION}.tar.gz \
+          --exclude='.git*' \
+          --exclude='*.tfstate*' \
+          --exclude='.terraform' \
+          --exclude='outputs' \
+          .
+    
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
+        asset_name: insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
+        asset_content_type: application/gzip

@@ -22,7 +22,7 @@ terraform {
 
 # Create a unique cache key based on base_url and username for this session
 locals {
-  cache_key = md5("${var.base_url}:${var.username}")
+  cache_key         = md5("${var.base_url}:${var.username}")
   cookie_cache_file = "/tmp/insightfinder-cookies-${local.cache_key}.txt"
 }
 

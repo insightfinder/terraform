@@ -1,0 +1,90 @@
+name: Version Validation
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for git tags
+    
+    - name: Validate version consistency
+      run: |
+        chmod +x ./scripts/validate_version.sh
+        ./scripts/validate_version.sh
+    
+    - name: Check VERSION file format
+      run: |
+        VERSION=$(cat VERSION | tr -d '[:space:]')
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ Invalid version format: $VERSION"
+          echo "Expected format: X.Y.Z (e.g., 1.0.0)"
+          exit 1
+        fi
+        echo "✅ Version format is valid: $VERSION"
+    
+    - name: Validate CHANGELOG.md
+      run: |
+        VERSION=$(cat VERSION | tr -d '[:space:]')
+        if ! grep -q "\[${VERSION}\]" CHANGELOG.md; then
+          echo "⚠️  Warning: Version $VERSION not found in CHANGELOG.md"
+          echo "Please update CHANGELOG.md with release notes"
+        else
+          echo "✅ CHANGELOG.md contains entry for version $VERSION"
+        fi
+    
+    - name: Check for unreleased changes
+      run: |
+        if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+          echo "ℹ️  Unreleased changes found in CHANGELOG.md"
+        fi
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+    
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+    
+    - name: Terraform Init
+      run: terraform init -backend=false
+    
+    - name: Terraform Validate
+      run: terraform validate
+    
+    - name: Check module version accessibility
+      run: |
+        # Validate that VERSION file exists and is readable
+        if [ ! -f "VERSION" ]; then
+          echo "❌ VERSION file not found"
+          exit 1
+        fi
+        
+        VERSION=$(cat VERSION | tr -d '[:space:]')
+        echo "✅ Module version from VERSION file: $VERSION"
+        
+        # Validate that main.tf references the VERSION file
+        if grep -q 'file("${path.module}/VERSION")' main.tf; then
+          echo "✅ main.tf correctly references VERSION file"
+        else
+          echo "❌ main.tf does not reference VERSION file"
+          exit 1
+        fi
+        
+        echo "✅ Module version system is properly configured"

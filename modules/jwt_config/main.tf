@@ -102,7 +102,7 @@ resource "null_resource" "resolve_system_name" {
 # Configure JWT token using resolved system ID
 resource "null_resource" "configure_jwt" {
   depends_on = [null_resource.resolve_system_name]
-  
+
   provisioner "local-exec" {
     command = <<-EOT
       echo "Configuring JWT token for system '${var.jwt_config.system_name}'..."
@@ -215,9 +215,9 @@ resource "null_resource" "configure_jwt" {
   }
 
   triggers = {
-    system_name   = var.jwt_config.system_name
-    jwt_secret    = sha256(var.jwt_config.jwt_secret) # Use hash to avoid exposing secret in triggers
-    username      = var.api_config.username
-    auth_token    = var.api_config.auth_token
+    system_name = var.jwt_config.system_name
+    jwt_secret  = sha256(var.jwt_config.jwt_secret) # Use hash to avoid exposing secret in triggers
+    username    = var.api_config.username
+    auth_token  = var.api_config.auth_token
   }
 }

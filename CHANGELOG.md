@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-11-25
+
+### Changed
+- Add ServiceNow integration support
+
+
 ### Added
 - **ServiceNow Integration**: New `servicenow_config` module for configuring ServiceNow integration
 - **Token Caching System**: Automatic authentication token caching to avoid re-authentication across modules

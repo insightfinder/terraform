@@ -36,17 +36,17 @@ variable "project_config" {
 variable "servicenow_config" {
   description = "ServiceNow integration configuration object"
   type = object({
-    service_host       = string
-    proxy             = optional(string, "")
-    account           = string
-    password          = string
-    dampening_period  = optional(number, 300)
-    client_id         = string  # ServiceNow application client ID (sent as app_id to API)
-    client_secret     = string  # ServiceNow application client secret (sent as app_key to API)
-    system_names      = optional(list(string), [])  # Human-readable system names (automatically resolved to system IDs)
-    system_ids        = optional(list(string), [])  # System IDs
-    options           = optional(list(string), [])
-    content_option    = optional(list(string), [])
+    service_host     = string
+    proxy            = optional(string, "")
+    account          = string
+    password         = string
+    dampening_period = optional(number, 300)
+    client_id        = string                     # ServiceNow application client ID (sent as app_id to API)
+    client_secret    = string                     # ServiceNow application client secret (sent as app_key to API)
+    system_names     = optional(list(string), []) # Human-readable system names (automatically resolved to system IDs)
+    system_ids       = optional(list(string), []) # System IDs
+    options          = optional(list(string), [])
+    content_option   = optional(list(string), [])
   })
   default   = null
   sensitive = true
@@ -56,17 +56,20 @@ variable "servicenow_config" {
 variable "jwt_config" {
   description = "JWT token configuration object"
   type = object({
-    jwt_secret  = string  # JWT secret key (minimum 6 characters)
-    system_name = string  # System name to configure JWT for (will be resolved to system ID)
+    jwt_secret  = string # JWT secret key (minimum 6 characters)
+    system_name = string # System name to configure JWT for (will be resolved to system ID)
   })
   default   = null
   sensitive = true
-  
+
   validation {
-    condition = var.jwt_config == null || (
-      var.jwt_config.jwt_secret != "" && 
-      var.jwt_config.system_name != "" &&
-      length(var.jwt_config.jwt_secret) >= 6
+    condition = (
+      var.jwt_config == null ||
+      (
+        try(var.jwt_config.jwt_secret, "") != "" &&
+        try(var.jwt_config.system_name, "") != "" &&
+        try(length(var.jwt_config.jwt_secret), 0) >= 6
+      )
     )
     error_message = "When jwt_config is provided, jwt_secret must be at least 6 characters and system_name cannot be empty."
   }
