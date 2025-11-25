@@ -69,6 +69,13 @@ jobs:
       run: terraform validate
     
     - name: Check module version output
+      timeout-minutes: 2
       run: |
         # Validate that version local is defined
-        echo 'local.module_version' | terraform console
+        VERSION=$(echo 'local.module_version' | terraform console)
+        echo "Module version: $VERSION"
+        if [ -z "$VERSION" ]; then
+          echo "❌ Failed to read module version"
+          exit 1
+        fi
+        echo "✅ Module version is accessible: $VERSION"
