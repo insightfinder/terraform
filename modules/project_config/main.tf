@@ -15,6 +15,24 @@ terraform {
   }
 }
 
+# Validate that project_creation_config is provided when create_if_not_exists is true
+locals {
+  validate_creation_config = (
+    var.create_if_not_exists == false ||
+    (var.project_creation_config != null && var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
+  )
+  validation_error = !local.validate_creation_config ? "ERROR: project_creation_config with system_name is required when create_if_not_exists is true." : ""
+}
+
+# This will fail at plan time if validation fails
+resource "null_resource" "validation" {
+  count = local.validate_creation_config ? 0 : 1
+
+  provisioner "local-exec" {
+    command = "echo '${local.validation_error}' && exit 1"
+  }
+}
+
 # Check if project exists first
 resource "null_resource" "check_project_exists" {
   provisioner "local-exec" {

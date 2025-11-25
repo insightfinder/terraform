@@ -46,8 +46,8 @@ variable "project_creation_config" {
   default = null
 
   validation {
-    condition     = var.create_if_not_exists == false || (var.project_creation_config != null && var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
-    error_message = "project_creation_config with system_name is required when create_if_not_exists is true."
+    condition     = var.project_creation_config == null || (var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
+    error_message = "When project_creation_config is provided, system_name must be specified and cannot be empty."
   }
 }
 
