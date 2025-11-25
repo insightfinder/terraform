@@ -19,6 +19,74 @@ A production-ready Terraform module for managing InsightFinder projects using In
 
 ## 🚀 Quick Start
 
+### Using the Module from GitHub (Recommended)
+
+You can use this module directly from GitHub without cloning the repository:
+
+#### Reference by Tag
+
+Create a `main.tf` file in your project:
+
+```hcl
+# main.tf
+module "insightfinder" {
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v1.1.0"
+  
+  base_url    = "https://app.insightfinder.com"
+  username    = var.username
+  password    = var.password
+  license_key = var.license_key
+  
+  project_config = {
+    project_name         = "my-production-project"
+    create_if_not_exists = true
+    
+    project_creation_config = {
+      system_name         = "production-system"
+      data_type          = "Metric"
+      instance_type      = "OnPremise"
+      project_cloud_type = "OnPremise"
+      insight_agent_type = "collectd"
+    }
+    
+    projectDisplayName = "Production Monitoring"
+    cValue             = 3
+    pValue             = 0.95
+  }
+}
+
+# Define sensitive variables
+variable "username" {
+  type      = string
+  sensitive = true
+}
+
+variable "password" {
+  type      = string
+  sensitive = true
+}
+
+variable "license_key" {
+  type      = string
+  sensitive = true
+}
+```
+
+Then deploy:
+```bash
+export TF_VAR_username="your_username"
+export TF_VAR_password="your_password"
+export TF_VAR_license_key="your_license_key"
+
+terraform init
+terraform plan
+terraform apply
+```
+
+### Using from a Cloned Repository
+
+If you prefer to clone and use locally:
+
 ### 1. Set Credentials
 
 ```bash
