@@ -63,10 +63,13 @@ variable "jwt_config" {
   sensitive = true
 
   validation {
-    condition = var.jwt_config == null || (
-      var.jwt_config.jwt_secret != "" &&
-      var.jwt_config.system_name != "" &&
-      length(var.jwt_config.jwt_secret) >= 6
+    condition = (
+      var.jwt_config == null ||
+      (
+        try(var.jwt_config.jwt_secret, "") != "" &&
+        try(var.jwt_config.system_name, "") != "" &&
+        try(length(var.jwt_config.jwt_secret), 0) >= 6
+      )
     )
     error_message = "When jwt_config is provided, jwt_secret must be at least 6 characters and system_name cannot be empty."
   }
