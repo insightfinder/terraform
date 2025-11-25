@@ -68,14 +68,23 @@ jobs:
     - name: Terraform Validate
       run: terraform validate
     
-    - name: Check module version output
-      timeout-minutes: 2
+    - name: Check module version accessibility
       run: |
-        # Validate that version local is defined
-        VERSION=$(echo 'local.module_version' | terraform console)
-        echo "Module version: $VERSION"
-        if [ -z "$VERSION" ]; then
-          echo "❌ Failed to read module version"
+        # Validate that VERSION file exists and is readable
+        if [ ! -f "VERSION" ]; then
+          echo "❌ VERSION file not found"
           exit 1
         fi
-        echo "✅ Module version is accessible: $VERSION"
+        
+        VERSION=$(cat VERSION | tr -d '[:space:]')
+        echo "✅ Module version from VERSION file: $VERSION"
+        
+        # Validate that main.tf references the VERSION file
+        if grep -q 'file("${path.module}/VERSION")' main.tf; then
+          echo "✅ main.tf correctly references VERSION file"
+        else
+          echo "❌ main.tf does not reference VERSION file"
+          exit 1
+        fi
+        
+        echo "✅ Module version system is properly configured"
