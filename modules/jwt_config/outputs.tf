@@ -9,10 +9,10 @@ output "system_id" {
 output "configuration_status" {
   description = "Status of the JWT configuration operation"
   value = {
-    success         = fileexists("outputs/jwt-config-response-${var.jwt_config.system_name}.json")
-    system_name     = var.jwt_config.system_name
+    success            = fileexists("outputs/jwt-config-response-${var.jwt_config.system_name}.json")
+    system_name        = var.jwt_config.system_name
     resolved_system_id = try(trim(replace(file("/tmp/jwt-resolved-system-id-${var.api_config.username}.txt"), "\n", ""), " "), "unknown")
-    response_file   = fileexists("outputs/jwt-config-response-${var.jwt_config.system_name}.json") ? "outputs/jwt-config-response-${var.jwt_config.system_name}.json" : null
+    response_file      = fileexists("outputs/jwt-config-response-${var.jwt_config.system_name}.json") ? "outputs/jwt-config-response-${var.jwt_config.system_name}.json" : null
   }
   depends_on = [null_resource.configure_jwt]
 }

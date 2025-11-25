@@ -111,7 +111,7 @@ resource "null_resource" "resolve_system_names" {
 # Configure ServiceNow integration using resolved system IDs
 resource "null_resource" "configure_servicenow" {
   depends_on = [null_resource.resolve_system_names]
-  
+
   provisioner "local-exec" {
     command = <<-EOT
       echo "Configuring ServiceNow integration..."
@@ -283,16 +283,16 @@ resource "null_resource" "configure_servicenow" {
   }
 
   triggers = {
-    service_host       = var.servicenow_config.service_host
-    proxy             = var.servicenow_config.proxy
-    account           = var.servicenow_config.account
-    dampening_period  = var.servicenow_config.dampening_period
-    app_id            = var.servicenow_config.app_id
-    app_key           = var.servicenow_config.app_key
-    username          = var.api_config.username
-    auth_token        = var.api_config.auth_token
-    system_names      = join(",", var.servicenow_config.system_names)
-    options           = join(",", var.servicenow_config.options)
-    content_option    = join(",", var.servicenow_config.content_option)
+    service_host     = var.servicenow_config.service_host
+    proxy            = var.servicenow_config.proxy
+    account          = var.servicenow_config.account
+    dampening_period = var.servicenow_config.dampening_period
+    app_id           = var.servicenow_config.app_id
+    app_key          = var.servicenow_config.app_key
+    username         = var.api_config.username
+    auth_token       = var.api_config.auth_token
+    system_names     = join(",", var.servicenow_config.system_names)
+    options          = join(",", var.servicenow_config.options)
+    content_option   = join(",", var.servicenow_config.content_option)
   }
 }

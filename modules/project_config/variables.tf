@@ -37,16 +37,16 @@ variable "create_if_not_exists" {
 variable "project_creation_config" {
   description = "Project creation configuration (required if create_if_not_exists is true)"
   type = object({
-    system_name         = string
+    system_name        = string
     data_type          = optional(string, "Metric")
     instance_type      = optional(string, "OnPremise")
     project_cloud_type = optional(string, "OnPremise")
     insight_agent_type = optional(string, "Custom")
   })
   default = null
-  
+
   validation {
-    condition = var.create_if_not_exists == false || (var.project_creation_config != null && var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
+    condition     = var.create_if_not_exists == false || (var.project_creation_config != null && var.project_creation_config.system_name != null && var.project_creation_config.system_name != "")
     error_message = "project_creation_config with system_name is required when create_if_not_exists is true."
   }
 }
@@ -99,9 +99,9 @@ variable "instanceGroupingData" {
   type = list(object({
     instanceName        = string
     containerName       = optional(string)
-    appName            = optional(string)
-    metricInstanceName = optional(string)
-    ignoreFlag         = optional(bool)
+    appName             = optional(string)
+    metricInstanceName  = optional(string)
+    ignoreFlag          = optional(bool)
     instanceDisplayName = optional(string)
   }))
   default = null
@@ -223,19 +223,19 @@ variable "componentMetricSettingOverallModelList" {
   description = "Settings for Metric Settings Page"
   type = list(object({
     metricName                         = string
-    isKPI                             = optional(bool)
-    escalateIncidentSet               = optional(list(string))
-    escalateIncidentAll               = optional(bool)
-    patternNameHigher                 = optional(string)
-    patternNameLower                  = optional(string)
-    detectionType                     = optional(string)
-    positiveBaselineViolationFactor   = optional(number)
-    thresholdAlertLowerBound          = optional(number)
-    thresholdAlertUpperBound          = optional(number)
-    thresholdAlertUpperBoundNegative  = optional(number)
-    thresholdAlertLowerBoundNegative  = optional(number)
-    thresholdNoAlertLowerBound        = optional(number)
-    thresholdNoAlertUpperBound        = optional(number)
+    isKPI                              = optional(bool)
+    escalateIncidentSet                = optional(list(string))
+    escalateIncidentAll                = optional(bool)
+    patternNameHigher                  = optional(string)
+    patternNameLower                   = optional(string)
+    detectionType                      = optional(string)
+    positiveBaselineViolationFactor    = optional(number)
+    thresholdAlertLowerBound           = optional(number)
+    thresholdAlertUpperBound           = optional(number)
+    thresholdAlertUpperBoundNegative   = optional(number)
+    thresholdAlertLowerBoundNegative   = optional(number)
+    thresholdNoAlertLowerBound         = optional(number)
+    thresholdNoAlertUpperBound         = optional(number)
     thresholdNoAlertLowerBoundNegative = optional(number)
     thresholdNoAlertUpperBoundNegative = optional(number)
   }))

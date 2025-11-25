@@ -54,7 +54,7 @@ resource "null_resource" "check_project_exists" {
 resource "null_resource" "create_project_if_needed" {
   count      = var.create_if_not_exists ? 1 : 0
   depends_on = [null_resource.check_project_exists]
-  
+
   provisioner "local-exec" {
     command = <<-EOT
       # Check if project already exists
@@ -153,13 +153,13 @@ resource "null_resource" "create_project_if_needed" {
   }
 
   triggers = {
-    project_name         = var.project_name
-    system_name          = var.project_creation_config.system_name
-    data_type           = var.project_creation_config.data_type
-    instance_type       = var.project_creation_config.instance_type
-    project_cloud_type  = var.project_creation_config.project_cloud_type
-    insight_agent_type  = var.project_creation_config.insight_agent_type
-    username            = var.api_config.username
+    project_name       = var.project_name
+    system_name        = var.project_creation_config.system_name
+    data_type          = var.project_creation_config.data_type
+    instance_type      = var.project_creation_config.instance_type
+    project_cloud_type = var.project_creation_config.project_cloud_type
+    insight_agent_type = var.project_creation_config.insight_agent_type
+    username           = var.api_config.username
   }
 }
 
@@ -168,41 +168,41 @@ locals {
   # Build config from individual variables (only non-null values, matching OpenAPI spec)
   individual_fields = {
     for k, v in {
-      cValue                              = var.cValue
-      pValue                              = var.pValue
-      showInstanceDown                    = var.showInstanceDown
-      retentionTime                       = var.retentionTime
-      UBLRetentionTime                   = var.UBLRetentionTime
-      projectDisplayName                  = var.projectDisplayName
-      samplingInterval                    = var.samplingInterval
-      instanceGroupingData                = var.instanceGroupingData
-      highRatioCValue                    = var.highRatioCValue
-      dynamicBaselineDetectionFlag       = var.dynamicBaselineDetectionFlag
-      positiveBaselineViolationFactor    = var.positiveBaselineViolationFactor
-      negativeBaselineViolationFactor    = var.negativeBaselineViolationFactor
-      enablePeriodAnomalyFilter          = var.enablePeriodAnomalyFilter
-      enableUBLDetect                    = var.enableUBLDetect
-      enableCumulativeDetect             = var.enableCumulativeDetect
-      instanceDownThreshold              = var.instanceDownThreshold
-      instanceDownReportNumber           = var.instanceDownReportNumber
-      instanceDownEnable                 = var.instanceDownEnable
-      modelSpan                          = var.modelSpan
-      enableMetricDataPrediction         = var.enableMetricDataPrediction
-      enableBaselineDetectionDoubleVerify = var.enableBaselineDetectionDoubleVerify
-      enableFillGap                      = var.enableFillGap
-      patternIdGenerationRule            = var.patternIdGenerationRule
-      anomalyGapToleranceCount           = var.anomalyGapToleranceCount
-      filterByAnomalyInBaselineGeneration = var.filterByAnomalyInBaselineGeneration
-      baselineDuration                   = var.baselineDuration
+      cValue                                 = var.cValue
+      pValue                                 = var.pValue
+      showInstanceDown                       = var.showInstanceDown
+      retentionTime                          = var.retentionTime
+      UBLRetentionTime                       = var.UBLRetentionTime
+      projectDisplayName                     = var.projectDisplayName
+      samplingInterval                       = var.samplingInterval
+      instanceGroupingData                   = var.instanceGroupingData
+      highRatioCValue                        = var.highRatioCValue
+      dynamicBaselineDetectionFlag           = var.dynamicBaselineDetectionFlag
+      positiveBaselineViolationFactor        = var.positiveBaselineViolationFactor
+      negativeBaselineViolationFactor        = var.negativeBaselineViolationFactor
+      enablePeriodAnomalyFilter              = var.enablePeriodAnomalyFilter
+      enableUBLDetect                        = var.enableUBLDetect
+      enableCumulativeDetect                 = var.enableCumulativeDetect
+      instanceDownThreshold                  = var.instanceDownThreshold
+      instanceDownReportNumber               = var.instanceDownReportNumber
+      instanceDownEnable                     = var.instanceDownEnable
+      modelSpan                              = var.modelSpan
+      enableMetricDataPrediction             = var.enableMetricDataPrediction
+      enableBaselineDetectionDoubleVerify    = var.enableBaselineDetectionDoubleVerify
+      enableFillGap                          = var.enableFillGap
+      patternIdGenerationRule                = var.patternIdGenerationRule
+      anomalyGapToleranceCount               = var.anomalyGapToleranceCount
+      filterByAnomalyInBaselineGeneration    = var.filterByAnomalyInBaselineGeneration
+      baselineDuration                       = var.baselineDuration
       componentMetricSettingOverallModelList = var.componentMetricSettingOverallModelList
-      enableBaselineNearConstance        = var.enableBaselineNearConstance
-      computeDifference                  = var.computeDifference
+      enableBaselineNearConstance            = var.enableBaselineNearConstance
+      computeDifference                      = var.computeDifference
     } : k => v if v != null
   }
-  
+
   # Merge individual fields with project_config (project_config takes precedence)
   final_config = merge(local.individual_fields, var.project_config)
-  
+
   # Extract only the config fields for API call (remove metadata)
   api_config = try(var.project_config.config, {})
 }
@@ -217,15 +217,15 @@ resource "null_resource" "create_outputs_dir" {
 # Generate configuration JSON file for debugging/validation (all fields)
 resource "local_file" "config_json" {
   depends_on = [null_resource.create_outputs_dir]
-  content  = jsonencode(local.final_config)
-  filename = "outputs/generated-config.json"
+  content    = jsonencode(local.final_config)
+  filename   = "outputs/generated-config.json"
 }
 
 # Generate API-specific configuration JSON file (only config fields)
 resource "local_file" "api_config" {
   depends_on = [null_resource.create_outputs_dir]
-  content  = jsonencode(local.api_config)
-  filename = "outputs/api-config.json"
+  content    = jsonencode(local.api_config)
+  filename   = "outputs/api-config.json"
 }
 
 # Apply configuration to InsightFinder API
