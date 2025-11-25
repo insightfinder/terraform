@@ -70,8 +70,5 @@ jobs:
     
     - name: Check module version output
       run: |
-        terraform init -backend=false
         # Validate that version local is defined
-        terraform console <<EOF
-        local.module_version
-        EOF
+        echo 'local.module_version' | terraform console
