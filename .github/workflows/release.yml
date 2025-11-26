@@ -1,4 +1,5 @@
 name: Release
+run-name: Release ${{ github.ref_name }}
 
 on:
   push:
@@ -7,13 +8,14 @@ on:
 
 jobs:
   release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
     
@@ -23,6 +25,7 @@ jobs:
         TAG=${GITHUB_REF#refs/tags/v}
         echo "version=$TAG" >> $GITHUB_OUTPUT
         echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        echo "Release version: $TAG"
     
     - name: Validate version matches VERSION file
       run: |
@@ -37,6 +40,19 @@ jobs:
         fi
         echo "✅ Version matches: $FILE_VERSION"
     
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.5.0
+    
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+    
+    - name: Terraform Init and Validate
+      run: |
+        terraform init -backend=false
+        terraform validate
+    
     - name: Extract changelog for this version
       id: changelog
       run: |
@@ -48,51 +64,111 @@ jobs:
         # Save to file for GitHub release
         echo "$CHANGELOG" > release_notes.md
         
+        # Check if changelog is empty
+        if [ ! -s release_notes.md ]; then
+          echo "⚠️  No changelog entry found for version $VERSION"
+          echo "Release version $VERSION" > release_notes.md
+        fi
+        
         # Debug output
         echo "Release notes for version $VERSION:"
         cat release_notes.md
     
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        release_name: Release ${{ steps.version.outputs.version }}
-        body_path: release_notes.md
-        draft: false
-        prerelease: false
-    
-    - name: Terraform Format Check
-      run: terraform fmt -check -recursive
-    
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.5.0
-    
-    - name: Terraform Validate
-      run: |
-        terraform init -backend=false
-        terraform validate
-    
-    - name: Archive release
+    - name: Create release archive
       run: |
         VERSION="${{ steps.version.outputs.version }}"
-        tar -czf insightfinder-terraform-${VERSION}.tar.gz \
-          --exclude='.git*' \
+        ARCHIVE_NAME="insightfinder-terraform-${VERSION}.tar.gz"
+        
+        echo "Creating release archive: $ARCHIVE_NAME"
+        tar -czf "$ARCHIVE_NAME" \
+          --exclude='.git' \
+          --exclude='.github' \
           --exclude='*.tfstate*' \
           --exclude='.terraform' \
           --exclude='outputs' \
-          .
+          --exclude='*.tar.gz' \
+          --transform "s,^,insightfinder-terraform-${VERSION}/," \
+          *
+        
+        # Verify archive was created
+        ls -lh "$ARCHIVE_NAME"
+        echo "archive_name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+      id: archive
     
-    - name: Upload release asset
-      uses: actions/upload-release-asset@v1
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Read changelog content
+        CHANGELOG_CONTENT=$(cat release_notes.md)
+        
+        # Create enhanced release notes
+        cat > enhanced_release_notes.md << 'EOF'
+        ## 🚀 InsightFinder Terraform Module v${{ steps.version.outputs.version }}
+        
+        ### 📦 Installation
+        
+        Use this module in your Terraform configuration:
+        
+        ```hcl
+        module "insightfinder" {
+          source = "git::https://github.com/insightfinder/terraform.git?ref=v${{ steps.version.outputs.version }}"
+          
+          base_url    = "https://app.insightfinder.com"
+          username    = var.username
+          password    = var.password
+          license_key = var.license_key
+          
+          project_config = {
+            project_name         = "my-project"
+            create_if_not_exists = true
+            # ... configuration
+          }
+        }
+        ```
+        
+        ### 📋 What's Changed
+        
+        EOF
+        
+        # Append changelog content
+        cat release_notes.md >> enhanced_release_notes.md
+        
+        # Add footer
+        cat >> enhanced_release_notes.md << 'EOF'
+        
+        ### 📚 Documentation
+        
+        - [README](https://github.com/insightfinder/terraform/blob/v${{ steps.version.outputs.version }}/README.md)
+        - [CHANGELOG](https://github.com/insightfinder/terraform/blob/v${{ steps.version.outputs.version }}/CHANGELOG.md)
+        
+        **Full Changelog**: https://github.com/insightfinder/terraform/compare/v1.0.0...v${{ steps.version.outputs.version }}
+        EOF
+        
+        echo "Enhanced release notes created"
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release ${{ steps.version.outputs.version }}
+        body_path: enhanced_release_notes.md
+        files: |
+          insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
-        asset_name: insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
-        asset_content_type: application/gzip
+    
+    - name: Release Summary
+      run: |
+        echo "## ✅ Release Published Successfully" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Tag:** ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Archive:** insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+
