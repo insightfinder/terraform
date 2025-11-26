@@ -23,22 +23,53 @@ jobs:
       id: version
       run: |
         TAG=${GITHUB_REF#refs/tags/v}
+        # Extract base version (remove prerelease suffixes like -test, -rc1, -beta, etc.)
+        BASE_VERSION=$(echo "$TAG" | sed 's/-.*$//')
+        
+        # Check if this is a prerelease
+        if [[ "$TAG" =~ -[a-zA-Z] ]]; then
+          IS_PRERELEASE="true"
+          echo "🏷️  This is a prerelease tag: $TAG"
+        else
+          IS_PRERELEASE="false"
+          echo "🏷️  This is a stable release tag: $TAG"
+        fi
+        
         echo "version=$TAG" >> $GITHUB_OUTPUT
+        echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
         echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        echo "Release version: $TAG"
+        echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+        echo "Release version: $TAG (base: $BASE_VERSION)"
     
     - name: Validate version matches VERSION file
       run: |
         FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
         TAG_VERSION="${{ steps.version.outputs.version }}"
+        BASE_VERSION="${{ steps.version.outputs.base_version }}"
+        IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
         
-        if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
-          echo "❌ Version mismatch!"
-          echo "VERSION file: $FILE_VERSION"
-          echo "Git tag: $TAG_VERSION"
-          exit 1
+        echo "VERSION file: $FILE_VERSION"
+        echo "Git tag: $TAG_VERSION"
+        echo "Base version: $BASE_VERSION"
+        echo "Is prerelease: $IS_PRERELEASE"
+        
+        # For prereleases, compare base version; for stable releases, exact match
+        if [ "$IS_PRERELEASE" = "true" ]; then
+          if [ "$FILE_VERSION" != "$BASE_VERSION" ]; then
+            echo "❌ Version mismatch for prerelease!"
+            echo "   Expected VERSION file to match base version: $BASE_VERSION"
+            exit 1
+          fi
+          echo "✅ Prerelease version matches: $FILE_VERSION (tag: $TAG_VERSION)"
+        else
+          if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   VERSION file: $FILE_VERSION"
+            echo "   Git tag: $TAG_VERSION"
+            exit 1
+          fi
+          echo "✅ Version matches: $FILE_VERSION"
         fi
-        echo "✅ Version matches: $FILE_VERSION"
     
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -156,18 +187,25 @@ jobs:
         files: |
           insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz
         draft: false
-        prerelease: false
+        prerelease: ${{ steps.version.outputs.is_prerelease }}
         generate_release_notes: true
-        make_latest: true
+        make_latest: ${{ steps.version.outputs.is_prerelease == 'false' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Release Summary
       run: |
-        echo "## ✅ Release Published Successfully" >> $GITHUB_STEP_SUMMARY
+        IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
+        
+        if [ "$IS_PRERELEASE" = "true" ]; then
+          echo "## ⚠️ Prerelease Published Successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## ✅ Release Published Successfully" >> $GITHUB_STEP_SUMMARY
+        fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
         echo "**Tag:** ${{ steps.version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Prerelease:** $IS_PRERELEASE" >> $GITHUB_STEP_SUMMARY
         echo "**Archive:** insightfinder-terraform-${{ steps.version.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
