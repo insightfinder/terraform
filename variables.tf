@@ -13,14 +13,8 @@ variable "username" {
   type        = string
 }
 
-variable "password" {
-  description = "InsightFinder password"
-  type        = string
-  sensitive   = true
-}
-
 variable "license_key" {
-  description = "InsightFinder license key (required for project creation)"
+  description = "InsightFinder license key"
   type        = string
   sensitive   = true
 }

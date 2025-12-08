@@ -30,21 +30,12 @@ resource "null_resource" "resolve_system_names" {
       
       echo "Fetching systems list from API..."
       
-      # Check if cookie file exists from api_client module
-      cookie_file="${var.api_config.cookie_file}"
-      if [ ! -f "$cookie_file" ]; then
-        echo "❌ Session cookie file not found: $cookie_file"
-        echo "Make sure api_client module has been applied first"
-        exit 1
-      fi
-      
-      echo "Using cached session cookies from: $cookie_file"
-      
-      # Use the cached session cookies to call systems API
+      # Use header-based authentication (no cookies)
       systems_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X GET \
-        -b "$cookie_file" \
-        "${var.api_config.base_url}/api/v2/systemframework?customerName=${var.api_config.username}&needDetail=false")
+        -H "X-User-Name: ${var.api_config.username}" \
+        -H "X-API-Key: ${var.api_config.license_key}" \
+        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=false")
       
       # Extract response body and status code
       body=$(echo "$systems_response" | sed '$d')
@@ -102,7 +93,7 @@ resource "null_resource" "resolve_system_names" {
 
   triggers = {
     username     = var.api_config.username
-    auth_token   = var.api_config.auth_token
+    license_key  = var.api_config.license_key
     system_names = join(",", var.servicenow_config.system_names)
     system_ids   = join(",", var.servicenow_config.system_ids)
   }
@@ -139,28 +130,18 @@ resource "null_resource" "configure_servicenow" {
       echo "Options JSON: $options_json"
       echo "Content Options JSON: $content_option_json"
       
-      # Use shared cookie-based authentication from api_client module
-      echo "Using cached session cookies for ServiceNow configuration..."
-      
-      # Check if cookie file exists from api_client module
-      cookie_file="${var.api_config.cookie_file}"
-      if [ ! -f "$cookie_file" ]; then
-        echo "❌ Session cookie file not found: $cookie_file"
-        echo "Make sure api_client module has been applied first"
-        exit 1
-      fi
-      
-      echo "Using cached session cookies from: $cookie_file"
+      # Use header-based authentication (no cookies or CSRF token)
+      echo "Using header-based authentication for ServiceNow configuration..."
       
       # URL encode the password to handle special characters like %
       encoded_password=$(printf '%s' "${var.servicenow_config.password}" | sed 's/%/%25/g; s/ /%20/g; s/!/%21/g; s/"/%22/g; s/#/%23/g; s/\$/%24/g; s/&/%26/g; s/'\''/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2A/g; s/+/%2B/g; s/,/%2C/g; s/-/%2D/g; s/\./%2E/g; s/\//%2F/g; s/:/%3A/g; s/;/%3B/g; s/</%3C/g; s/=/%3D/g; s/>/%3E/g; s/?/%3F/g; s/@/%40/g; s/\[/%5B/g; s/\\/%5C/g; s/\]/%5D/g; s/\^/%5E/g; s/_/%5F/g; s/`/%60/g; s/{/%7B/g; s/|/%7C/g; s/}/%7D/g; s/~/%7E/g')
       
-      # Make API call to configure ServiceNow using both shared session cookies and auth token
+      # Make API call to configure ServiceNow using header-based authentication
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
         -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
-        -b "$cookie_file" \
+        -H "X-User-Name: ${var.api_config.username}" \
+        -H "X-API-Key: ${var.api_config.license_key}" \
         -d "verify=true" \
         -d "operation=ServiceNow" \
         -d "service_host=${var.servicenow_config.service_host}" \
@@ -174,7 +155,7 @@ resource "null_resource" "configure_servicenow" {
         -d "systemIds=$system_ids_json" \
         -d "options=$options_json" \
         -d "contentOption=$content_option_json" \
-        "${var.api_config.base_url}/api/v1/service-integration")
+        "${var.api_config.base_url}/api/external/v1/service-integration")
       
       # Extract response body and status code
       body=$(echo "$response" | sed '$d')
@@ -204,8 +185,8 @@ resource "null_resource" "configure_servicenow" {
           response2=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
             -X POST \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
-            -b "$cookie_file" \
+            -H "X-User-Name: ${var.api_config.username}" \
+            -H "X-API-Key: ${var.api_config.license_key}" \
             -d "operation=ServiceNow" \
             -d "service_host=${var.servicenow_config.service_host}" \
             -d "proxy=${var.servicenow_config.proxy}" \
@@ -218,7 +199,7 @@ resource "null_resource" "configure_servicenow" {
             -d "systemIds=$system_ids_json" \
             -d "options=$options_json" \
             -d "contentOption=$content_option_json" \
-            "${var.api_config.base_url}/api/v1/service-integration")
+            "${var.api_config.base_url}/api/external/v1/service-integration")
           
           # Extract response body and status code for second call
           body2=$(echo "$response2" | sed '$d')
@@ -290,7 +271,7 @@ resource "null_resource" "configure_servicenow" {
     app_id           = var.servicenow_config.app_id
     app_key          = var.servicenow_config.app_key
     username         = var.api_config.username
-    auth_token       = var.api_config.auth_token
+    license_key      = var.api_config.license_key
     system_names     = join(",", var.servicenow_config.system_names)
     options          = join(",", var.servicenow_config.options)
     content_option   = join(",", var.servicenow_config.content_option)

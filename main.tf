@@ -1,6 +1,6 @@
 # InsightFinder Terraform Configuration
 # This module provides clean, structured configuration for InsightFinder projects
-# Module Version: 1.1.0
+# Module Version: 2.0.0
 
 terraform {
   required_version = ">= 1.0"
@@ -27,7 +27,6 @@ module "api_client" {
 
   base_url    = var.base_url
   username    = var.username
-  password    = var.password
   license_key = var.license_key
 }
 

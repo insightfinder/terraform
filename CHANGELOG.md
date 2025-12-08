@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-08
+
+### Changed
+- **BREAKING**: Removed password-based authentication in favor of API key authentication
+- **BREAKING**: Removed `password` variable from root module and all submodules
+- **BREAKING**: Updated all API endpoints to use new external API paths:
+  - `/api/v1/watch-tower-setting` → `/api/external/v1/watch-tower-setting`
+  - `/api/v2/systemframework` → `/api/external/v1/systemframework`
+  - `/api/v1/service-integration` → `/api/external/v1/service-integration`
+- Simplified authentication to use only `X-User-Name` and `X-API-Key` headers
+- Removed cookie-based session management and CSRF token handling
+- Removed authentication token caching system (no longer needed)
+
+### Removed
+- **BREAKING**: `password` variable from all modules
+- **BREAKING**: `auth_token` from API client outputs and internal references
+- **BREAKING**: `cookie_file` from API client outputs and internal references
+- Login endpoint `/api/v1/login-check` usage
+- Cookie caching and management logic
+- Token retrieval and caching mechanism
+- All password-related authentication infrastructure
+
+### Migration Guide for v2.0.0
+- **Remove `password` variable** from your `.tfvars` files and variable definitions
+- **Keep only `username` and `license_key`** for authentication
+- No other code changes required - all API request formats remain the same
+- Authentication now uses simple header-based approach:
+  ```hcl
+  username    = "your-username"
+  license_key = "your-license-key"
+  # Remove: password = "..."  ← DELETE THIS LINE
+  ```
+
+### Benefits
+- Simpler authentication mechanism (no session management)
+- More secure (API key-based instead of password)
+- Faster execution (no login/cookie steps)
+- Better API stability with external endpoints
+
 ## [1.1.0] - 2025-11-25
 
 ### Changed
