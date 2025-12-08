@@ -148,7 +148,6 @@ jobs:
           
           base_url    = "https://app.insightfinder.com"
           username    = var.username
-          password    = var.password
           license_key = var.license_key
           
           project_config = {
