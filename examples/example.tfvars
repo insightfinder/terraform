@@ -6,8 +6,7 @@
 # ==========================================
 base_url = "https://stg.insightfinder.com" # Use staging for testing
 username = "your_username"
-# password and license_key are set via environment variables:
-# export TF_VAR_password="your_password"
+# license_key is set via environment variables:
 # export TF_VAR_license_key="your_license_key"
 
 # ==========================================
@@ -139,7 +138,6 @@ jwt_config = {
 # DEPLOYMENT INSTRUCTIONS
 # ==========================================
 # 1. Set your credentials:
-#    export TF_VAR_password="your_insightfinder_password"
 #    export TF_VAR_license_key="your_license_key"
 # 
 # 2. Configure services (choose what you need):

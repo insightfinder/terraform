@@ -6,10 +6,7 @@ variable "api_config" {
   type = object({
     base_url    = string
     username    = string
-    password    = string
     license_key = string
-    auth_token  = optional(string)
-    cookie_file = optional(string)
   })
   sensitive = true
 }

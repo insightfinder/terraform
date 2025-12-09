@@ -1,6 +1,6 @@
 # InsightFinder Terraform Module
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](./VERSION)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](./VERSION)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-orange.svg)](./CHANGELOG.md)
 
 A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.
@@ -30,11 +30,10 @@ Create a `main.tf` file in your project:
 ```hcl
 # main.tf
 module "insightfinder" {
-  source = "git::https://github.com/insightfinder/terraform.git?ref=v1.1.0"
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.0"
   
   base_url    = "https://app.insightfinder.com"
   username    = var.username
-  password    = var.password
   license_key = var.license_key
   
   project_config = {
@@ -61,11 +60,6 @@ variable "username" {
   sensitive = true
 }
 
-variable "password" {
-  type      = string
-  sensitive = true
-}
-
 variable "license_key" {
   type      = string
   sensitive = true
@@ -75,7 +69,6 @@ variable "license_key" {
 Then deploy:
 ```bash
 export TF_VAR_username="your_username"
-export TF_VAR_password="your_password"
 export TF_VAR_license_key="your_license_key"
 
 terraform init
@@ -90,7 +83,6 @@ If you prefer to clone and use locally:
 ### 1. Set Credentials
 
 ```bash
-export TF_VAR_password="your_insightfinder_password"
 export TF_VAR_license_key="your_insightfinder_license_key"
 ```
 
@@ -333,7 +325,6 @@ jwt_config = {
 | Variable | Type | Description |
 |----------|------|-------------|
 | `username` | string | InsightFinder username |
-| `password` | string | InsightFinder password (via `TF_VAR_password`) |
 | `license_key` | string | InsightFinder license key (via `TF_VAR_license_key`) |
 
 ### Connection Variables
@@ -407,9 +398,16 @@ terraform/
 
 ```bash
 # Set sensitive values via environment
-export TF_VAR_password="your-secure-password"
 export TF_VAR_license_key="your-secure-license-key"
 ```
+
+### Authentication
+
+Version 2.0.0 uses secure API key-based authentication with the following headers:
+- `X-User-Name`: Your InsightFinder username
+- `X-API-Key`: Your InsightFinder license key
+
+This approach is more secure than password-based authentication and doesn't require session management.
 
 ## 🚨 Troubleshooting
 
@@ -417,13 +415,13 @@ export TF_VAR_license_key="your-secure-license-key"
 
 ```bash
 # Ensure credentials are set correctly
-export TF_VAR_password="your_actual_password"
 export TF_VAR_license_key="your_actual_license_key"
 
 # Verify they're set
-echo $TF_VAR_password
 echo $TF_VAR_license_key
 ```
+
+**Note**: Version 2.0.0+ uses API key authentication only. The `password` variable has been removed.
 
 ### Project Not Found Errors
 
@@ -452,13 +450,31 @@ echo $TF_VAR_license_key
 
 ## 🔗 API Integration
 
-- **Authentication**: `POST /api/v1/login-check`
+- **Authentication**: Header-based with `X-User-Name` and `X-API-Key`
 - **Project Creation**: `POST /api/v1/check-and-add-custom-project`
-- **Project Configuration**: `POST /api/v1/watch-tower-setting`
-- **ServiceNow Integration**: `POST /api/v1/service-integration`
-- **JWT Configuration**: `POST /api/v2/systemframework`
-- **System Resolution**: `GET /api/v2/systemframework`
+- **Project Configuration**: `POST /api/external/v1/watch-tower-setting`
+- **ServiceNow Integration**: `POST /api/external/v1/service-integration`
+- **JWT Configuration**: `POST /api/external/v1/systemframework`
+- **System Resolution**: `GET /api/external/v1/systemframework`
 - **Error Handling**: Robust validation and meaningful error messages
+
+### Breaking Changes in v2.0.0
+
+⚠️ **Version 2.0.0 introduces breaking changes:**
+
+1. **Removed `password` variable** - Authentication now uses only `username` and `license_key`
+2. **New API endpoints** - Migrated to `/api/external/v1/*` endpoints for better stability
+3. **Simplified authentication** - No more session management or cookies
+
+**Migration from v1.x to v2.0.0:**
+```diff
+  base_url    = "https://app.insightfinder.com"
+  username    = var.username
+- password    = var.password
+  license_key = var.license_key
+```
+
+Simply remove the `password` variable from your configuration and tfvars files.
 
 ## 📄 License
 

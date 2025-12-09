@@ -19,21 +19,12 @@ resource "null_resource" "resolve_system_name" {
       
       echo "Fetching systems list from API..."
       
-      # Check if cookie file exists from api_client module
-      cookie_file="${var.api_config.cookie_file}"
-      if [ ! -f "$cookie_file" ]; then
-        echo "❌ Session cookie file not found: $cookie_file"
-        echo "Make sure api_client module has been applied first"
-        exit 1
-      fi
-      
-      echo "Using cached session cookies from: $cookie_file"
-      
-      # Use the cached session cookies to call systems API
+      # Use header-based authentication (no cookies)
       systems_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X GET \
-        -b "$cookie_file" \
-        "${var.api_config.base_url}/api/v2/systemframework?customerName=${var.api_config.username}&needDetail=false")
+        -H "X-User-Name: ${var.api_config.username}" \
+        -H "X-API-Key: ${var.api_config.license_key}" \
+        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=false")
       
       # Extract response body and status code
       body=$(echo "$systems_response" | sed '$d')
@@ -94,7 +85,7 @@ resource "null_resource" "resolve_system_name" {
 
   triggers = {
     username    = var.api_config.username
-    auth_token  = var.api_config.auth_token
+    license_key = var.api_config.license_key
     system_name = var.jwt_config.system_name
   }
 }
@@ -146,29 +137,19 @@ resource "null_resource" "configure_jwt" {
       echo "Encoded System Key: $encoded_system_key"
       echo "Encoded System Framework Setting: $encoded_system_framework_setting"
       
-      # Use shared cookie-based authentication from api_client module
-      echo "Using cached session cookies for JWT configuration..."
+      # Use header-based authentication (no cookies or CSRF token)
+      echo "Using header-based authentication for JWT configuration..."
       
-      # Check if cookie file exists from api_client module
-      cookie_file="${var.api_config.cookie_file}"
-      if [ ! -f "$cookie_file" ]; then
-        echo "❌ Session cookie file not found: $cookie_file"
-        echo "Make sure api_client module has been applied first"
-        exit 1
-      fi
-      
-      echo "Using cached session cookies from: $cookie_file"
-      
-      # Make API call to configure JWT using both shared session cookies and auth token
+      # Make API call to configure JWT using header-based authentication
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
         -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "X-CSRF-TOKEN: ${var.api_config.auth_token}" \
-        -b "$cookie_file" \
+        -H "X-User-Name: ${var.api_config.username}" \
+        -H "X-API-Key: ${var.api_config.license_key}" \
         -d "operation=systemFrameworkSetting" \
         -d "systemKey=$encoded_system_key" \
         -d "systemFrameworkSetting=$encoded_system_framework_setting" \
-        "${var.api_config.base_url}/api/v2/systemframework?tzOffset=-14400000")
+        "${var.api_config.base_url}/api/external/v1/systemframework?tzOffset=-14400000")
       
       # Extract response body and status code
       body=$(echo "$response" | sed '$d')
@@ -218,6 +199,6 @@ resource "null_resource" "configure_jwt" {
     system_name = var.jwt_config.system_name
     jwt_secret  = sha256(var.jwt_config.jwt_secret) # Use hash to avoid exposing secret in triggers
     username    = var.api_config.username
-    auth_token  = var.api_config.auth_token
+    license_key = var.api_config.license_key
   }
 }
