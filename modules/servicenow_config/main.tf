@@ -22,7 +22,7 @@ resource "null_resource" "resolve_system_names" {
         echo "Using provided system IDs directly (bypassing system name resolution)"
         system_ids="${join(",", var.servicenow_config.system_ids)}"
         echo "System IDs: $system_ids"
-        echo "$system_ids" > "/tmp/resolved-system-ids-${var.api_config.username}.txt"
+        echo "$system_ids" > "/tmp/resolved-system-ids-$IF_USERNAME.txt"
         exit 0
       fi
       
@@ -30,12 +30,20 @@ resource "null_resource" "resolve_system_names" {
       
       echo "Fetching systems list from API..."
       
-      # Use header-based authentication (no cookies)
+      # Create curl config file to hide sensitive headers from logs
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config" EXIT
+      
+      cat > "$temp_curl_config" <<EOF
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
+      
+      # Use header-based authentication (API key hidden from logs)
       systems_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X GET \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
-        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=false")
+        -K "$temp_curl_config" \
+        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=$IF_USERNAME&needDetail=false")
       
       # Extract response body and status code
       body=$(echo "$systems_response" | sed '$d')
@@ -87,8 +95,13 @@ resource "null_resource" "resolve_system_names" {
       fi
       
       echo "Resolved system IDs: $system_ids"
-      echo "$system_ids" > "/tmp/resolved-system-ids-${var.api_config.username}.txt"
+      echo "$system_ids" > "/tmp/resolved-system-ids-$IF_USERNAME.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
@@ -111,12 +124,12 @@ resource "null_resource" "configure_servicenow" {
       mkdir -p outputs
       
       # Read resolved system IDs
-      if [ ! -f "/tmp/resolved-system-ids-${var.api_config.username}.txt" ]; then
+      if [ ! -f "/tmp/resolved-system-ids-$IF_USERNAME.txt" ]; then
         echo "❌ System ID resolution failed - no resolved system IDs file found"
         exit 1
       fi
       
-      system_ids_str=$(cat "/tmp/resolved-system-ids-${var.api_config.username}.txt")
+      system_ids_str=$(cat "/tmp/resolved-system-ids-$IF_USERNAME.txt")
       echo "Using resolved system IDs: $system_ids_str"
       
       # Format system IDs as JSON array string
@@ -130,18 +143,26 @@ resource "null_resource" "configure_servicenow" {
       echo "Options JSON: $options_json"
       echo "Content Options JSON: $content_option_json"
       
-      # Use header-based authentication (no cookies or CSRF token)
+      # Use header-based authentication (API key hidden from logs)
       echo "Using header-based authentication for ServiceNow configuration..."
       
       # URL encode the password to handle special characters like %
       encoded_password=$(printf '%s' "${var.servicenow_config.password}" | sed 's/%/%25/g; s/ /%20/g; s/!/%21/g; s/"/%22/g; s/#/%23/g; s/\$/%24/g; s/&/%26/g; s/'\''/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2A/g; s/+/%2B/g; s/,/%2C/g; s/-/%2D/g; s/\./%2E/g; s/\//%2F/g; s/:/%3A/g; s/;/%3B/g; s/</%3C/g; s/=/%3D/g; s/>/%3E/g; s/?/%3F/g; s/@/%40/g; s/\[/%5B/g; s/\\/%5C/g; s/\]/%5D/g; s/\^/%5E/g; s/_/%5F/g; s/`/%60/g; s/{/%7B/g; s/|/%7C/g; s/}/%7D/g; s/~/%7E/g')
       
+      # Create curl config file to hide sensitive headers from logs
+      temp_snow_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config $temp_snow_curl_config" EXIT
+      
+      cat > "$temp_snow_curl_config" <<EOF
+header = "Content-Type: application/x-www-form-urlencoded"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
+      
       # Make API call to configure ServiceNow using header-based authentication
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
+        -K "$temp_snow_curl_config" \
         -d "verify=true" \
         -d "operation=ServiceNow" \
         -d "service_host=${var.servicenow_config.service_host}" \
@@ -151,7 +172,7 @@ resource "null_resource" "configure_servicenow" {
         -d "dampeningPeriod=${var.servicenow_config.dampening_period}" \
         -d "appId=${var.servicenow_config.app_id}" \
         -d "appKey=${var.servicenow_config.app_key}" \
-        -d "customerName=${var.api_config.username}" \
+        -d "customerName=$IF_USERNAME" \
         -d "systemIds=$system_ids_json" \
         -d "options=$options_json" \
         -d "contentOption=$content_option_json" \
@@ -167,7 +188,7 @@ resource "null_resource" "configure_servicenow" {
       # Check for authentication errors first
       if echo "$body" | grep -q "authentication\|unauthorized\|invalid.*credentials\|token.*expired"; then
         echo "❌ Authentication failed during ServiceNow configuration. Please verify your token."
-        echo "Username: ${var.api_config.username}"
+        echo "Username: $IF_USERNAME"
         echo "Base URL: ${var.api_config.base_url}"
         exit 1
       fi
@@ -182,11 +203,19 @@ resource "null_resource" "configure_servicenow" {
           # Make second API call without verify flag (only if first call was successful)
           echo "Making second ServiceNow configuration call without verify flag..."
           
+          # Create second curl config file (reuse same config)
+          temp_snow_curl_config2=$(mktemp)
+          trap "rm -f $temp_curl_config $temp_snow_curl_config $temp_snow_curl_config2" EXIT
+          
+          cat > "$temp_snow_curl_config2" <<EOF
+header = "Content-Type: application/x-www-form-urlencoded"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
+          
           response2=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
             -X POST \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-User-Name: ${var.api_config.username}" \
-            -H "X-API-Key: ${var.api_config.license_key}" \
+            -K "$temp_snow_curl_config2" \
             -d "operation=ServiceNow" \
             -d "service_host=${var.servicenow_config.service_host}" \
             -d "proxy=${var.servicenow_config.proxy}" \
@@ -195,7 +224,7 @@ resource "null_resource" "configure_servicenow" {
             -d "dampeningPeriod=${var.servicenow_config.dampening_period}" \
             -d "appId=${var.servicenow_config.app_id}" \
             -d "appKey=${var.servicenow_config.app_key}" \
-            -d "customerName=${var.api_config.username}" \
+            -d "customerName=$IF_USERNAME" \
             -d "systemIds=$system_ids_json" \
             -d "options=$options_json" \
             -d "contentOption=$content_option_json" \
@@ -211,7 +240,7 @@ resource "null_resource" "configure_servicenow" {
           # Check for authentication errors first
           if echo "$body2" | grep -q "authentication\|unauthorized\|invalid.*credentials\|token.*expired"; then
             echo "⚠️  Authentication failed during second ServiceNow configuration call."
-            echo "Username: ${var.api_config.username}"
+            echo "Username: $IF_USERNAME"
             echo "Base URL: ${var.api_config.base_url}"
             # Don't exit on second call failure - first call already succeeded
           fi
@@ -229,7 +258,7 @@ resource "null_resource" "configure_servicenow" {
             fi
           elif [ "$status2" -eq 401 ]; then
             echo "⚠️  Authentication failed on second call. Please check your authentication token."
-            echo "Username: ${var.api_config.username}"
+            echo "Username: $IF_USERNAME"
             # Don't exit on second call failure - first call already succeeded
           elif [ "$status2" -eq 403 ]; then
             echo "⚠️  Access forbidden on second call. Please check your permissions for ServiceNow configuration."
@@ -246,7 +275,7 @@ resource "null_resource" "configure_servicenow" {
         fi
       elif [ "$status" -eq 401 ]; then
         echo "❌ Authentication failed. Please check your authentication token."
-        echo "Username: ${var.api_config.username}"
+        echo "Username: $IF_USERNAME"
         exit 1
       elif [ "$status" -eq 403 ]; then
         echo "❌ Access forbidden. Please check your permissions for ServiceNow configuration."
@@ -258,9 +287,14 @@ resource "null_resource" "configure_servicenow" {
       fi
       
       # Cleanup temp files
-      rm -f "/tmp/systems-${var.api_config.username}.json"
-      rm -f "/tmp/resolved-system-ids-${var.api_config.username}.txt"
+      rm -f "/tmp/systems-$IF_USERNAME.json"
+      rm -f "/tmp/resolved-system-ids-$IF_USERNAME.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {

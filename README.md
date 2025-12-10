@@ -1,6 +1,6 @@
 # InsightFinder Terraform Module
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](./VERSION)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](./VERSION)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-orange.svg)](./CHANGELOG.md)
 
 A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.
@@ -30,7 +30,7 @@ Create a `main.tf` file in your project:
 ```hcl
 # main.tf
 module "insightfinder" {
-  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.0"
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.1"
   
   base_url    = "https://app.insightfinder.com"
   username    = var.username
@@ -66,11 +66,29 @@ variable "license_key" {
 }
 ```
 
-Then deploy:
+Then deploy using one of these options:
+
+**Option 1: Using Environment Variables**
 ```bash
 export TF_VAR_username="your_username"
 export TF_VAR_license_key="your_license_key"
 
+terraform init
+terraform plan
+terraform apply
+```
+
+**Option 2: Using a .tfvars file**
+
+Create a `terraform.tfvars` file (keep this file secure and never commit it):
+```hcl
+# terraform.tfvars
+username    = "your_username"
+license_key = "your_license_key"
+```
+
+Then deploy:
+```bash
 terraform init
 terraform plan
 terraform apply

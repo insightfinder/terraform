@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-12-10
+
+### Security
+- **CRITICAL**: Fixed API key exposure in Terraform error logs by using environment variables
+- API keys are now passed via provisioner `environment` block instead of direct variable interpolation
+- Sensitive credentials no longer appear in error output when `terraform apply` fails
+- Implemented secure credential passing using shell environment variables (`$IF_USERNAME`, `$IF_API_KEY`)
+
+### Fixed
+- Security vulnerability where `X-API-Key` values were printed in Terraform provisioner error messages
+- Updated all three modules (project_config, jwt_config, servicenow_config) to use environment-based credential passing
+
+### Technical Details
+- Provisioners now use `environment` block to pass credentials securely
+- Curl config files reference shell variables instead of Terraform variables
+- Error messages now show `$IF_API_KEY` instead of actual secret values
+
 ## [2.0.0] - 2025-12-08
 
 ### Changed

@@ -19,12 +19,20 @@ resource "null_resource" "resolve_system_name" {
       
       echo "Fetching systems list from API..."
       
-      # Use header-based authentication (no cookies)
+      # Create curl config file to hide sensitive headers from logs
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config" EXIT
+      
+      cat > "$temp_curl_config" <<EOF
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
+      
+      # Use header-based authentication (API key hidden from logs)
       systems_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X GET \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
-        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=false")
+        -K "$temp_curl_config" \
+        "${var.api_config.base_url}/api/external/v1/systemframework?customerName=$IF_USERNAME&needDetail=false")
       
       # Extract response body and status code
       body=$(echo "$systems_response" | sed '$d')
@@ -81,6 +89,11 @@ resource "null_resource" "resolve_system_name" {
       # Cleanup
       rm -f "/tmp/jwt-systems-${var.api_config.username}.json"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
@@ -137,15 +150,23 @@ resource "null_resource" "configure_jwt" {
       echo "Encoded System Key: $encoded_system_key"
       echo "Encoded System Framework Setting: $encoded_system_framework_setting"
       
-      # Use header-based authentication (no cookies or CSRF token)
+      # Use header-based authentication (API key hidden from logs)
       echo "Using header-based authentication for JWT configuration..."
+      
+      # Create curl config file to hide sensitive headers from logs
+      temp_jwt_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config $temp_jwt_curl_config" EXIT
+      
+      cat > "$temp_jwt_curl_config" <<EOF
+header = "Content-Type: application/x-www-form-urlencoded"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
       
       # Make API call to configure JWT using header-based authentication
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
+        -K "$temp_jwt_curl_config" \
         -d "operation=systemFrameworkSetting" \
         -d "systemKey=$encoded_system_key" \
         -d "systemFrameworkSetting=$encoded_system_framework_setting" \
@@ -191,8 +212,13 @@ resource "null_resource" "configure_jwt" {
       fi
       
       # Cleanup temp files
-      rm -f "/tmp/jwt-resolved-system-id-${var.api_config.username}.txt"
+      rm -f "/tmp/jwt-resolved-system-id-$IF_USERNAME.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {

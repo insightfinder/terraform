@@ -299,14 +299,21 @@ resource "null_resource" "apply_config" {
       # Use separate temp files for verbose output and response
       temp_response=$(mktemp)
       temp_stderr=$(mktemp)
-      trap "rm -f $temp_response $temp_stderr" EXIT
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_response $temp_stderr $temp_curl_config" EXIT
 
-      # Run curl with header-based authentication (no cookies or CSRF token)
+      # Create curl config file to hide sensitive headers from logs
+      # Use environment variables to avoid exposing credentials in error output
+      cat > "$temp_curl_config" <<EOF
+header = "Content-Type: application/json"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+EOF
+
+      # Run curl with header-based authentication (API key hidden from logs)
       http_code=$(curl --http1.1 -s -w "%%{http_code}" -X POST \
-        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=${var.api_config.username}" \
-        -H "Content-Type: application/json" \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
+        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=$IF_USERNAME" \
+        -K "$temp_curl_config" \
         -d "$config_json" \
         -o "$temp_response" 2>"$temp_stderr")
       
@@ -335,6 +342,11 @@ resource "null_resource" "apply_config" {
       rm -f "/tmp/project-config-check-${var.project_name}.json"
       rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
