@@ -1,6 +1,6 @@
 # InsightFinder Terraform Module
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](./VERSION)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](./VERSION)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-orange.svg)](./CHANGELOG.md)
 
 A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.

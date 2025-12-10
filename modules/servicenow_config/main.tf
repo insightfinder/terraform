@@ -30,11 +30,19 @@ resource "null_resource" "resolve_system_names" {
       
       echo "Fetching systems list from API..."
       
-      # Use header-based authentication (no cookies)
+      # Create curl config file to hide sensitive headers from logs
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config" EXIT
+      
+      cat > "$temp_curl_config" <<EOF
+header = "X-User-Name: ${var.api_config.username}"
+header = "X-API-Key: ${var.api_config.license_key}"
+EOF
+      
+      # Use header-based authentication (API key hidden from logs)
       systems_response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X GET \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
+        -K "$temp_curl_config" \
         "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=false")
       
       # Extract response body and status code
@@ -130,18 +138,26 @@ resource "null_resource" "configure_servicenow" {
       echo "Options JSON: $options_json"
       echo "Content Options JSON: $content_option_json"
       
-      # Use header-based authentication (no cookies or CSRF token)
+      # Use header-based authentication (API key hidden from logs)
       echo "Using header-based authentication for ServiceNow configuration..."
       
       # URL encode the password to handle special characters like %
       encoded_password=$(printf '%s' "${var.servicenow_config.password}" | sed 's/%/%25/g; s/ /%20/g; s/!/%21/g; s/"/%22/g; s/#/%23/g; s/\$/%24/g; s/&/%26/g; s/'\''/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2A/g; s/+/%2B/g; s/,/%2C/g; s/-/%2D/g; s/\./%2E/g; s/\//%2F/g; s/:/%3A/g; s/;/%3B/g; s/</%3C/g; s/=/%3D/g; s/>/%3E/g; s/?/%3F/g; s/@/%40/g; s/\[/%5B/g; s/\\/%5C/g; s/\]/%5D/g; s/\^/%5E/g; s/_/%5F/g; s/`/%60/g; s/{/%7B/g; s/|/%7C/g; s/}/%7D/g; s/~/%7E/g')
       
+      # Create curl config file to hide sensitive headers from logs
+      temp_snow_curl_config=$(mktemp)
+      trap "rm -f $temp_curl_config $temp_snow_curl_config" EXIT
+      
+      cat > "$temp_snow_curl_config" <<EOF
+header = "Content-Type: application/x-www-form-urlencoded"
+header = "X-User-Name: ${var.api_config.username}"
+header = "X-API-Key: ${var.api_config.license_key}"
+EOF
+      
       # Make API call to configure ServiceNow using header-based authentication
       response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
         -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -H "X-User-Name: ${var.api_config.username}" \
-        -H "X-API-Key: ${var.api_config.license_key}" \
+        -K "$temp_snow_curl_config" \
         -d "verify=true" \
         -d "operation=ServiceNow" \
         -d "service_host=${var.servicenow_config.service_host}" \
@@ -182,11 +198,19 @@ resource "null_resource" "configure_servicenow" {
           # Make second API call without verify flag (only if first call was successful)
           echo "Making second ServiceNow configuration call without verify flag..."
           
+          # Create second curl config file (reuse same config)
+          temp_snow_curl_config2=$(mktemp)
+          trap "rm -f $temp_curl_config $temp_snow_curl_config $temp_snow_curl_config2" EXIT
+          
+          cat > "$temp_snow_curl_config2" <<EOF
+header = "Content-Type: application/x-www-form-urlencoded"
+header = "X-User-Name: ${var.api_config.username}"
+header = "X-API-Key: ${var.api_config.license_key}"
+EOF
+          
           response2=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
             -X POST \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -H "X-User-Name: ${var.api_config.username}" \
-            -H "X-API-Key: ${var.api_config.license_key}" \
+            -K "$temp_snow_curl_config2" \
             -d "operation=ServiceNow" \
             -d "service_host=${var.servicenow_config.service_host}" \
             -d "proxy=${var.servicenow_config.proxy}" \
