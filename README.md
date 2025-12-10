@@ -66,11 +66,29 @@ variable "license_key" {
 }
 ```
 
-Then deploy:
+Then deploy using one of these options:
+
+**Option 1: Using Environment Variables**
 ```bash
 export TF_VAR_username="your_username"
 export TF_VAR_license_key="your_license_key"
 
+terraform init
+terraform plan
+terraform apply
+```
+
+**Option 2: Using a .tfvars file**
+
+Create a `terraform.tfvars` file (keep this file secure and never commit it):
+```hcl
+# terraform.tfvars
+username    = "your_username"
+license_key = "your_license_key"
+```
+
+Then deploy:
+```bash
 terraform init
 terraform plan
 terraform apply
