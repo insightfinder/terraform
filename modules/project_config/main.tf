@@ -342,7 +342,7 @@ EOF
       rm -f "/tmp/project-config-check-${var.project_name}.json"
       rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
-    
+
     environment = {
       IF_USERNAME = var.api_config.username
       IF_API_KEY  = var.api_config.license_key

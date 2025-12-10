@@ -89,7 +89,7 @@ EOF
       # Cleanup
       rm -f "/tmp/jwt-systems-${var.api_config.username}.json"
     EOT
-    
+
     environment = {
       IF_USERNAME = var.api_config.username
       IF_API_KEY  = var.api_config.license_key
@@ -214,7 +214,7 @@ EOF
       # Cleanup temp files
       rm -f "/tmp/jwt-resolved-system-id-$IF_USERNAME.txt"
     EOT
-    
+
     environment = {
       IF_USERNAME = var.api_config.username
       IF_API_KEY  = var.api_config.license_key
