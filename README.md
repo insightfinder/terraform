@@ -30,7 +30,7 @@ Create a `main.tf` file in your project:
 ```hcl
 # main.tf
 module "insightfinder" {
-  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.0"
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.1"
   
   base_url    = "https://app.insightfinder.com"
   username    = var.username
