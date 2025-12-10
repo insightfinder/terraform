@@ -303,15 +303,16 @@ resource "null_resource" "apply_config" {
       trap "rm -f $temp_response $temp_stderr $temp_curl_config" EXIT
 
       # Create curl config file to hide sensitive headers from logs
+      # Use environment variables to avoid exposing credentials in error output
       cat > "$temp_curl_config" <<EOF
 header = "Content-Type: application/json"
-header = "X-User-Name: ${var.api_config.username}"
-header = "X-API-Key: ${var.api_config.license_key}"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
 EOF
 
       # Run curl with header-based authentication (API key hidden from logs)
       http_code=$(curl --http1.1 -s -w "%%{http_code}" -X POST \
-        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=${var.api_config.username}" \
+        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=$IF_USERNAME" \
         -K "$temp_curl_config" \
         -d "$config_json" \
         -o "$temp_response" 2>"$temp_stderr")
@@ -341,6 +342,11 @@ EOF
       rm -f "/tmp/project-config-check-${var.project_name}.json"
       rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+    
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
