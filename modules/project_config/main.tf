@@ -241,8 +241,14 @@ locals {
   # Merge individual fields with project_config (project_config takes precedence)
   final_config = merge(local.individual_fields, var.project_config)
 
-  # Extract only the config fields for API call (remove metadata)
-  api_config = try(var.project_config.config, {})
+  # Extract logLabelSettingCreate for separate processing
+  log_label_settings = try(var.project_config.logLabelSettingCreate, [])
+  
+  # Remove logLabelSettingCreate from the main config to process it separately
+  config_without_log_labels = { for k, v in local.final_config : k => v if k != "logLabelSettingCreate" }
+
+  # Use config without log labels for the main API call
+  api_config = local.config_without_log_labels
 }
 
 # Create outputs directory
@@ -374,5 +380,81 @@ EOF
     project_name = var.project_name
     username     = var.api_config.username
     license_key  = var.api_config.license_key
+  }
+}
+# Apply logLabelSettingCreate items individually after main configuration
+resource "null_resource" "apply_log_label_settings" {
+  count = length(local.log_label_settings)
+  
+  depends_on = [null_resource.apply_config]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Applying logLabelSettingCreate item ${count.index + 1} of ${length(local.log_label_settings)} to project '${var.project_name}'..."
+      
+      # Create outputs directory if it doesn't exist
+      mkdir -p outputs
+      
+      # Build JSON for this specific log label setting
+      config_json=$(cat <<'INNER_EOF'
+{
+  "logLabelSettingCreate": ${jsonencode(local.log_label_settings[count.index])}
+}
+INNER_EOF
+)
+      
+      echo "Log Label Config to be sent:"
+      echo "$config_json"
+      
+      # Create temporary files
+      temp_response=$(mktemp)
+      temp_stderr=$(mktemp)
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_response $temp_stderr $temp_curl_config" EXIT
+
+      # Create curl config file to hide sensitive headers from logs
+      cat > "$temp_curl_config" <<CURL_EOF
+header = "Content-Type: application/json"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+CURL_EOF
+
+      # Run curl with header-based authentication
+      http_code=$(curl --http1.1 -s -w "%%{http_code}" -X POST \
+        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=$IF_USERNAME" \
+        -K "$temp_curl_config" \
+        -d "$config_json" \
+        -o "$temp_response" 2>"$temp_stderr")
+      
+      # Read response body and status
+      body=$(cat "$temp_response")
+      status="$http_code"
+      
+      echo "Log Label Setting Response Status: $status"
+      echo "Log Label Setting Response Body: $body"
+      
+      # Check if request was successful
+      if [ "$status" -eq 200 ]; then
+        echo "✅ Log label setting ${count.index + 1} applied successfully!"
+        if [[ -n "$body" ]]; then
+          echo "$body" > "outputs/log-label-${count.index + 1}-response-${var.project_name}.json"
+        fi
+      else
+        echo "❌ Failed to apply log label setting ${count.index + 1}. HTTP Status: $status"
+        echo "Response: $body"
+        exit 1
+      fi
+    EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
+  }
+
+  triggers = {
+    log_label_hash = sha256(jsonencode(local.log_label_settings[count.index]))
+    project_name   = var.project_name
+    username       = var.api_config.username
   }
 }
