@@ -1,6 +1,6 @@
 # InsightFinder Terraform Module
 
-[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](./VERSION)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](./VERSION)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-orange.svg)](./CHANGELOG.md)
 
 A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.
@@ -30,7 +30,7 @@ Create a `main.tf` file in your project:
 ```hcl
 # main.tf
 module "insightfinder" {
-  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.0.1"
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.1.0"
   
   base_url    = "https://app.insightfinder.com"
   username    = var.username
