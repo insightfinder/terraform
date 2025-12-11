@@ -244,8 +244,14 @@ locals {
   # Extract logLabelSettingCreate for separate processing
   log_label_settings = try(var.project_config.logLabelSettingCreate, [])
   
-  # Remove logLabelSettingCreate from the main config to process it separately
-  config_without_log_labels = { for k, v in local.final_config : k => v if k != "logLabelSettingCreate" }
+  # List of Terraform-specific fields that should not be sent to API
+  terraform_only_fields = toset(["create_if_not_exists", "project_creation_config", "project_name"])
+  
+  # Remove logLabelSettingCreate and Terraform-specific fields from the main config
+  config_without_log_labels = { 
+    for k, v in local.final_config : k => v 
+    if k != "logLabelSettingCreate" && !contains(local.terraform_only_fields, k)
+  }
 
   # Use config without log labels for the main API call
   api_config = local.config_without_log_labels
