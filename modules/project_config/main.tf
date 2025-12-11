@@ -44,8 +44,8 @@ resource "null_resource" "check_project_exists" {
         -X POST \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -d "operation=check" \
-        -d "userName=${var.api_config.username}" \
-        -d "licenseKey=${var.api_config.license_key}" \
+        -d "userName=$IF_USERNAME" \
+        -d "licenseKey=$IF_API_KEY" \
         -d "projectName=${var.project_name}" \
         "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
       
@@ -60,6 +60,11 @@ resource "null_resource" "check_project_exists" {
       echo "$body" > "/tmp/project-config-check-${var.project_name}.json"
       echo "$status" > "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
@@ -99,8 +104,8 @@ resource "null_resource" "create_project_if_needed" {
         -X POST \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -d "operation=create" \
-        -d "userName=${var.api_config.username}" \
-        -d "licenseKey=${var.api_config.license_key}" \
+        -d "userName=$IF_USERNAME" \
+        -d "licenseKey=$IF_API_KEY" \
         -d "projectName=${var.project_name}" \
         -d "systemName=${var.project_creation_config.system_name}" \
         -d "dataType=${var.project_creation_config.data_type}" \
@@ -119,8 +124,8 @@ resource "null_resource" "create_project_if_needed" {
       # Check for credential errors first
       if echo "$body" | grep -q "does not match our records"; then
         echo "❌ Authentication failed. Please check your username and license key."
-        echo "Username: ${var.api_config.username}"
-        echo "License Key: [REDACTED - first 8 chars: $(echo "${var.api_config.license_key}" | cut -c1-8)...]"
+        echo "Username: $IF_USERNAME"
+        echo "License Key: [REDACTED - first 8 chars: $(echo "$IF_API_KEY" | cut -c1-8)...]"
         exit 1
       fi
       
@@ -142,8 +147,8 @@ resource "null_resource" "create_project_if_needed" {
           -X POST \
           -H "Content-Type: application/x-www-form-urlencoded" \
           -d "operation=check" \
-          -d "userName=${var.api_config.username}" \
-          -d "licenseKey=${var.api_config.license_key}" \
+          -d "userName=$IF_USERNAME" \
+          -d "licenseKey=$IF_API_KEY" \
           -d "projectName=${var.project_name}" \
           "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
         
@@ -168,6 +173,11 @@ resource "null_resource" "create_project_if_needed" {
       rm -f "/tmp/project-config-check-${var.project_name}.json"
       rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
