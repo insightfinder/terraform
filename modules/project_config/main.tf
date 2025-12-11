@@ -267,7 +267,7 @@ resource "null_resource" "create_outputs_dir" {
 # Generate configuration JSON file for debugging/validation (all fields)
 resource "local_file" "config_json" {
   depends_on = [null_resource.create_outputs_dir]
-  content    = jsonencode(local.final_config)
+  content    = jsonencode(local.api_config)
   filename   = "outputs/generated-config.json"
 }
 
