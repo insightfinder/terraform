@@ -99,20 +99,29 @@ resource "null_resource" "create_project_if_needed" {
       # Create outputs directory if it doesn't exist
       mkdir -p outputs
       
-      # Create form data for project creation
-      response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
+      # Build curl command with conditional projectCreationType parameter
+      curl_cmd="curl -s -w \"\nHTTP_STATUS:%%{http_code}\" \
         -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "operation=create" \
-        -d "userName=$IF_USERNAME" \
-        -d "licenseKey=$IF_API_KEY" \
-        -d "projectName=${var.project_name}" \
-        -d "systemName=${var.project_creation_config.system_name}" \
-        -d "dataType=${var.project_creation_config.data_type}" \
-        -d "instanceType=${var.project_creation_config.instance_type}" \
-        -d "projectCloudType=${var.project_creation_config.project_cloud_type}" \
-        -d "insightAgentType=${var.project_creation_config.insight_agent_type}" \
-        "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
+        -H \"Content-Type: application/x-www-form-urlencoded\" \
+        -d \"operation=create\" \
+        -d \"userName=\$IF_USERNAME\" \
+        -d \"licenseKey=\$IF_API_KEY\" \
+        -d \"projectName=${var.project_name}\" \
+        -d \"systemName=${var.project_creation_config.system_name}\" \
+        -d \"dataType=${var.project_creation_config.data_type}\" \
+        -d \"instanceType=${var.project_creation_config.instance_type}\" \
+        -d \"projectCloudType=${var.project_creation_config.project_cloud_type}\" \
+        -d \"insightAgentType=${var.project_creation_config.insight_agent_type}\""
+      
+      # Add projectCreationType only if it's provided
+      %{if var.project_creation_config.project_creation_type != null && var.project_creation_config.project_creation_type != ""}
+      curl_cmd="$curl_cmd -d \"projectCreationType=${var.project_creation_config.project_creation_type}\""
+      %{endif}
+      
+      curl_cmd="$curl_cmd \"${var.api_config.base_url}/api/v1/check-and-add-custom-project\""
+      
+      # Execute the curl command
+      response=$(eval $curl_cmd)
       
       # Extract response body and status code
       body=$(echo "$response" | sed '$d')
@@ -181,13 +190,14 @@ resource "null_resource" "create_project_if_needed" {
   }
 
   triggers = {
-    project_name       = var.project_name
-    system_name        = var.project_creation_config.system_name
-    data_type          = var.project_creation_config.data_type
-    instance_type      = var.project_creation_config.instance_type
-    project_cloud_type = var.project_creation_config.project_cloud_type
-    insight_agent_type = var.project_creation_config.insight_agent_type
-    username           = var.api_config.username
+    project_name          = var.project_name
+    system_name           = var.project_creation_config.system_name
+    data_type             = var.project_creation_config.data_type
+    instance_type         = var.project_creation_config.instance_type
+    project_cloud_type    = var.project_creation_config.project_cloud_type
+    insight_agent_type    = var.project_creation_config.insight_agent_type
+    project_creation_type = var.project_creation_config.project_creation_type
+    username              = var.api_config.username
   }
 }
 

@@ -34,11 +34,12 @@ variable "create_if_not_exists" {
 variable "project_creation_config" {
   description = "Project creation configuration (required if create_if_not_exists is true)"
   type = object({
-    system_name        = string
-    data_type          = optional(string, "Metric")
-    instance_type      = optional(string, "OnPremise")
-    project_cloud_type = optional(string, "OnPremise")
-    insight_agent_type = optional(string, "Custom")
+    system_name           = string
+    data_type             = optional(string, "Metric")
+    instance_type         = optional(string, "OnPremise")
+    project_cloud_type    = optional(string, "OnPremise")
+    insight_agent_type    = optional(string, "Custom")
+    project_creation_type = optional(string, null)
   })
   default = null
 
