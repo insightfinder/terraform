@@ -44,8 +44,8 @@ resource "null_resource" "check_project_exists" {
         -X POST \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -d "operation=check" \
-        -d "userName=${var.api_config.username}" \
-        -d "licenseKey=${var.api_config.license_key}" \
+        -d "userName=$IF_USERNAME" \
+        -d "licenseKey=$IF_API_KEY" \
         -d "projectName=${var.project_name}" \
         "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
       
@@ -60,6 +60,11 @@ resource "null_resource" "check_project_exists" {
       echo "$body" > "/tmp/project-config-check-${var.project_name}.json"
       echo "$status" > "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
@@ -94,20 +99,29 @@ resource "null_resource" "create_project_if_needed" {
       # Create outputs directory if it doesn't exist
       mkdir -p outputs
       
-      # Create form data for project creation
-      response=$(curl -s -w "\nHTTP_STATUS:%%{http_code}" \
+      # Build curl command with conditional projectCreationType parameter
+      curl_cmd="curl -s -w \"\nHTTP_STATUS:%%{http_code}\" \
         -X POST \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "operation=create" \
-        -d "userName=${var.api_config.username}" \
-        -d "licenseKey=${var.api_config.license_key}" \
-        -d "projectName=${var.project_name}" \
-        -d "systemName=${var.project_creation_config.system_name}" \
-        -d "dataType=${var.project_creation_config.data_type}" \
-        -d "instanceType=${var.project_creation_config.instance_type}" \
-        -d "projectCloudType=${var.project_creation_config.project_cloud_type}" \
-        -d "insightAgentType=${var.project_creation_config.insight_agent_type}" \
-        "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
+        -H \"Content-Type: application/x-www-form-urlencoded\" \
+        -d \"operation=create\" \
+        -d \"userName=\$IF_USERNAME\" \
+        -d \"licenseKey=\$IF_API_KEY\" \
+        -d \"projectName=${var.project_name}\" \
+        -d \"systemName=${var.project_creation_config.system_name}\" \
+        -d \"dataType=${var.project_creation_config.data_type}\" \
+        -d \"instanceType=${var.project_creation_config.instance_type}\" \
+        -d \"projectCloudType=${var.project_creation_config.project_cloud_type}\" \
+        -d \"insightAgentType=${var.project_creation_config.insight_agent_type}\""
+      
+      # Add projectCreationType only if it's provided
+      %{if var.project_creation_config.project_creation_type != null && var.project_creation_config.project_creation_type != ""}
+      curl_cmd="$curl_cmd -d \"projectCreationType=${var.project_creation_config.project_creation_type}\""
+      %{endif}
+      
+      curl_cmd="$curl_cmd \"${var.api_config.base_url}/api/v1/check-and-add-custom-project\""
+      
+      # Execute the curl command
+      response=$(eval $curl_cmd)
       
       # Extract response body and status code
       body=$(echo "$response" | sed '$d')
@@ -119,8 +133,8 @@ resource "null_resource" "create_project_if_needed" {
       # Check for credential errors first
       if echo "$body" | grep -q "does not match our records"; then
         echo "❌ Authentication failed. Please check your username and license key."
-        echo "Username: ${var.api_config.username}"
-        echo "License Key: [REDACTED - first 8 chars: $(echo "${var.api_config.license_key}" | cut -c1-8)...]"
+        echo "Username: $IF_USERNAME"
+        echo "License Key: [REDACTED - first 8 chars: $(echo "$IF_API_KEY" | cut -c1-8)...]"
         exit 1
       fi
       
@@ -142,8 +156,8 @@ resource "null_resource" "create_project_if_needed" {
           -X POST \
           -H "Content-Type: application/x-www-form-urlencoded" \
           -d "operation=check" \
-          -d "userName=${var.api_config.username}" \
-          -d "licenseKey=${var.api_config.license_key}" \
+          -d "userName=$IF_USERNAME" \
+          -d "licenseKey=$IF_API_KEY" \
           -d "projectName=${var.project_name}" \
           "${var.api_config.base_url}/api/v1/check-and-add-custom-project")
         
@@ -168,16 +182,22 @@ resource "null_resource" "create_project_if_needed" {
       rm -f "/tmp/project-config-check-${var.project_name}.json"
       rm -f "/tmp/project-config-status-${var.project_name}.txt"
     EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
   }
 
   triggers = {
-    project_name       = var.project_name
-    system_name        = var.project_creation_config.system_name
-    data_type          = var.project_creation_config.data_type
-    instance_type      = var.project_creation_config.instance_type
-    project_cloud_type = var.project_creation_config.project_cloud_type
-    insight_agent_type = var.project_creation_config.insight_agent_type
-    username           = var.api_config.username
+    project_name          = var.project_name
+    system_name           = var.project_creation_config.system_name
+    data_type             = var.project_creation_config.data_type
+    instance_type         = var.project_creation_config.instance_type
+    project_cloud_type    = var.project_creation_config.project_cloud_type
+    insight_agent_type    = var.project_creation_config.insight_agent_type
+    project_creation_type = var.project_creation_config.project_creation_type
+    username              = var.api_config.username
   }
 }
 
@@ -221,8 +241,20 @@ locals {
   # Merge individual fields with project_config (project_config takes precedence)
   final_config = merge(local.individual_fields, var.project_config)
 
-  # Extract only the config fields for API call (remove metadata)
-  api_config = try(var.project_config.config, {})
+  # Extract logLabelSettingCreate for separate processing
+  log_label_settings = try(var.project_config.logLabelSettingCreate, [])
+
+  # List of Terraform-specific fields that should not be sent to API
+  terraform_only_fields = toset(["create_if_not_exists", "project_creation_config", "project_name"])
+
+  # Remove logLabelSettingCreate and Terraform-specific fields from the main config
+  config_without_log_labels = {
+    for k, v in local.final_config : k => v
+    if k != "logLabelSettingCreate" && !contains(local.terraform_only_fields, k)
+  }
+
+  # Use config without log labels for the main API call
+  api_config = local.config_without_log_labels
 }
 
 # Create outputs directory
@@ -235,7 +267,7 @@ resource "null_resource" "create_outputs_dir" {
 # Generate configuration JSON file for debugging/validation (all fields)
 resource "local_file" "config_json" {
   depends_on = [null_resource.create_outputs_dir]
-  content    = jsonencode(local.final_config)
+  content    = jsonencode(local.api_config)
   filename   = "outputs/generated-config.json"
 }
 
@@ -354,5 +386,81 @@ EOF
     project_name = var.project_name
     username     = var.api_config.username
     license_key  = var.api_config.license_key
+  }
+}
+# Apply logLabelSettingCreate items individually after main configuration
+resource "null_resource" "apply_log_label_settings" {
+  count = length(local.log_label_settings)
+
+  depends_on = [null_resource.apply_config]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      echo "Applying logLabelSettingCreate item ${count.index + 1} of ${length(local.log_label_settings)} to project '${var.project_name}'..."
+      
+      # Create outputs directory if it doesn't exist
+      mkdir -p outputs
+      
+      # Build JSON for this specific log label setting
+      config_json=$(cat <<'INNER_EOF'
+{
+  "logLabelSettingCreate": ${jsonencode(local.log_label_settings[count.index])}
+}
+INNER_EOF
+)
+      
+      echo "Log Label Config to be sent:"
+      echo "$config_json"
+      
+      # Create temporary files
+      temp_response=$(mktemp)
+      temp_stderr=$(mktemp)
+      temp_curl_config=$(mktemp)
+      trap "rm -f $temp_response $temp_stderr $temp_curl_config" EXIT
+
+      # Create curl config file to hide sensitive headers from logs
+      cat > "$temp_curl_config" <<CURL_EOF
+header = "Content-Type: application/json"
+header = "X-User-Name: $IF_USERNAME"
+header = "X-API-Key: $IF_API_KEY"
+CURL_EOF
+
+      # Run curl with header-based authentication
+      http_code=$(curl --http1.1 -s -w "%%{http_code}" -X POST \
+        "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectName=${var.project_name}&customerName=$IF_USERNAME" \
+        -K "$temp_curl_config" \
+        -d "$config_json" \
+        -o "$temp_response" 2>"$temp_stderr")
+      
+      # Read response body and status
+      body=$(cat "$temp_response")
+      status="$http_code"
+      
+      echo "Log Label Setting Response Status: $status"
+      echo "Log Label Setting Response Body: $body"
+      
+      # Check if request was successful
+      if [ "$status" -eq 200 ]; then
+        echo "✅ Log label setting ${count.index + 1} applied successfully!"
+        if [[ -n "$body" ]]; then
+          echo "$body" > "outputs/log-label-${count.index + 1}-response-${var.project_name}.json"
+        fi
+      else
+        echo "❌ Failed to apply log label setting ${count.index + 1}. HTTP Status: $status"
+        echo "Response: $body"
+        exit 1
+      fi
+    EOT
+
+    environment = {
+      IF_USERNAME = var.api_config.username
+      IF_API_KEY  = var.api_config.license_key
+    }
+  }
+
+  triggers = {
+    log_label_hash = sha256(jsonencode(local.log_label_settings[count.index]))
+    project_name   = var.project_name
+    username       = var.api_config.username
   }
 }

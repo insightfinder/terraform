@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-12-11
+
+### Added
+- Support for `logLabelSettingCreate` configuration with individual API calls per setting
+- Each log label setting is now processed separately after main configuration
+- Script for batch applying Terraform configurations from a directory
+
+### Fixed
+- Fixed API key exposure in project creation provisioners
+
+### Changed
+- Main configuration and log label settings are now processed in separate API calls
+- Improved error handling and logging in provisioner scripts
+
 ## [2.0.1] - 2025-12-10
 
 ### Security
