@@ -26,21 +26,21 @@ output "service_integration_summary" {
 output "servicenow_config_drift" {
   description = "ServiceNow configuration drift detection information"
   value = {
-    service_host        = local.servicenow_config_drift.service_host
-    account             = local.servicenow_config_drift.account
-    has_changes         = local.servicenow_config_drift.has_changes
-    current_dampening   = local.servicenow_config_drift.current_dampening
-    desired_dampening   = local.servicenow_config_drift.desired_dampening
-    current_options     = local.servicenow_config_drift.current_options
-    desired_options     = local.servicenow_config_drift.desired_options
-    current_content     = local.servicenow_config_drift.current_content
-    desired_content     = local.servicenow_config_drift.desired_content
-    current_system_ids  = local.servicenow_config_drift.current_system_ids
-    desired_system_ids  = local.servicenow_config_drift.desired_system_ids
-    current_app_id      = local.servicenow_config_drift.current_app_id
-    desired_app_id      = local.servicenow_config_drift.desired_app_id
-    current_app_key     = local.servicenow_config_drift.current_app_key
-    desired_app_key     = local.servicenow_config_drift.desired_app_key
+    service_host       = local.servicenow_config_drift.service_host
+    account            = local.servicenow_config_drift.account
+    has_changes        = local.servicenow_config_drift.has_changes
+    current_dampening  = local.servicenow_config_drift.current_dampening
+    desired_dampening  = local.servicenow_config_drift.desired_dampening
+    current_options    = local.servicenow_config_drift.current_options
+    desired_options    = local.servicenow_config_drift.desired_options
+    current_content    = local.servicenow_config_drift.current_content
+    desired_content    = local.servicenow_config_drift.desired_content
+    current_system_ids = local.servicenow_config_drift.current_system_ids
+    desired_system_ids = local.servicenow_config_drift.desired_system_ids
+    current_app_id     = local.servicenow_config_drift.current_app_id
+    desired_app_id     = local.servicenow_config_drift.desired_app_id
+    current_app_key    = local.servicenow_config_drift.current_app_key
+    desired_app_key    = local.servicenow_config_drift.desired_app_key
   }
   sensitive = false
 }

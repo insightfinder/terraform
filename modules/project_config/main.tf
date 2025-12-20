@@ -214,7 +214,7 @@ resource "null_resource" "create_project_if_needed" {
     project_creation_type = var.project_creation_config.project_creation_type
     username              = var.api_config.username
     # Trigger recreation if project is deleted from UI
-    project_exists        = local.project_exists
+    project_exists = local.project_exists
   }
 }
 
@@ -223,107 +223,107 @@ locals {
   # Build config from all explicit variables (only non-null values)
   individual_fields = {
     for k, v in {
-      UBLRetentionTime                       = var.UBLRetentionTime
-      alertAverageTime                       = var.alertAverageTime
-      alertHourlyCost                        = var.alertHourlyCost
-      anomalyDetectionMode                   = var.anomalyDetectionMode
-      anomalySamplingInterval                = var.anomalySamplingInterval
-      avgPerIncidentDowntimeCost             = var.avgPerIncidentDowntimeCost
-      baseValueSetting                       = var.baseValueSetting
-      cValue                                 = var.cValue
-      causalMinDelay                         = var.causalMinDelay
-      causalPredictionSetting                = var.causalPredictionSetting
-      cdfSetting                             = var.cdfSetting
-      coldEventThreshold                     = var.coldEventThreshold
-      coldNumberLimit                        = var.coldNumberLimit
-      collectAllRareEventsFlag               = var.collectAllRareEventsFlag
-      dailyModelSpan                         = var.dailyModelSpan
-      disableLogCompressEvent                = var.disableLogCompressEvent
-      disableModelKeywordStatsCollection     = var.disableModelKeywordStatsCollection
-      emailSetting                           = var.emailSetting
-      enableAnomalyScoreEscalation           = var.enableAnomalyScoreEscalation
-      enableHotEvent                         = var.enableHotEvent
-      enableNewAlertEmail                    = var.enableNewAlertEmail
-      enableStreamDetection                  = var.enableStreamDetection
-      escalationAnomalyScoreThreshold        = var.escalationAnomalyScoreThreshold
-      featureOutlierSensitivity              = var.featureOutlierSensitivity
-      featureOutlierThreshold                = var.featureOutlierThreshold
-      hotEventCalmDownPeriod                 = var.hotEventCalmDownPeriod
-      hotEventDetectionMode                  = var.hotEventDetectionMode
-      hotEventThreshold                      = var.hotEventThreshold
-      hotNumberLimit                         = var.hotNumberLimit
-      ignoreAnomalyScoreThreshold            = var.ignoreAnomalyScoreThreshold
-      ignoreInstanceForKB                    = var.ignoreInstanceForKB
-      incidentConsolidationInterval          = var.incidentConsolidationInterval
-      incidentCountThreshold                 = var.incidentCountThreshold
-      incidentDurationThreshold              = var.incidentDurationThreshold
-      incidentPredictionEventLimit           = var.incidentPredictionEventLimit
-      incidentPredictionWindow               = var.incidentPredictionWindow
-      incidentRelationSearchWindow           = var.incidentRelationSearchWindow
-      instanceConvertFlag                    = var.instanceConvertFlag
-      instanceDownEnable                     = var.instanceDownEnable
-      instanceGroupingUpdate                 = var.instanceGroupingUpdate
-      isEdgeBrain                            = var.isEdgeBrain
-      isGroupingByInstance                   = var.isGroupingByInstance
-      isTracePrompt                          = var.isTracePrompt
-      keywordFeatureNumber                   = var.keywordFeatureNumber
-      keywordSetting                         = var.keywordSetting
-      largeProject                           = var.largeProject
-      llmEvaluationSetting                   = var.llmEvaluationSetting
-      logAnomalyEventBaseScore               = var.logAnomalyEventBaseScore
-      logDetectionMinCount                   = var.logDetectionMinCount
-      logDetectionSize                       = var.logDetectionSize
-      logPatternLimitLevel                   = var.logPatternLimitLevel
-      logToLogSettingList                    = var.logToLogSettingList
-      maxLogModelSize                        = var.maxLogModelSize
-      maxWebHookRequestSize                  = var.maxWebHookRequestSize
-      maximumDetectionWaitTime               = var.maximumDetectionWaitTime
-      maximumRootCauseResultSize             = var.maximumRootCauseResultSize
-      maximumThreads                         = var.maximumThreads
-      minIncidentPredictionWindow            = var.minIncidentPredictionWindow
-      minValidModelSpan                      = var.minValidModelSpan
-      modelKeywordSetting                    = var.modelKeywordSetting
-      multiHopSearchLevel                    = var.multiHopSearchLevel
-      multiHopSearchLimit                    = var.multiHopSearchLimit
-      multiLineFlag                          = var.multiLineFlag
-      newAlertFlag                           = var.newAlertFlag
-      newPatternNumberLimit                  = var.newPatternNumberLimit
-      newPatternRange                        = var.newPatternRange
-      nlpFlag                                = var.nlpFlag
-      normalEventCausalFlag                  = var.normalEventCausalFlag
-      pValue                                 = var.pValue
-      predictionCountThreshold               = var.predictionCountThreshold
-      predictionProbabilityThreshold         = var.predictionProbabilityThreshold
-      predictionRuleActiveCondition          = var.predictionRuleActiveCondition
-      predictionRuleActiveThreshold          = var.predictionRuleActiveThreshold
-      predictionRuleFalsePositiveThreshold   = var.predictionRuleFalsePositiveThreshold
-      predictionRuleInactiveThreshold        = var.predictionRuleInactiveThreshold
-      prettyJsonConvertorFlag                = var.prettyJsonConvertorFlag
-      projectDisplayName                     = var.projectDisplayName
-      projectModelFlag                       = var.projectModelFlag
-      projectTimeZone                        = var.projectTimeZone
-      proxy                                  = var.proxy
-      rareAnomalyType                        = var.rareAnomalyType
-      rareEventAlertThresholds               = var.rareEventAlertThresholds
-      rareNumberLimit                        = var.rareNumberLimit
-      retentionTime                          = var.retentionTime
-      rootCauseCountThreshold                = var.rootCauseCountThreshold
-      rootCauseLogMessageSearchRange         = var.rootCauseLogMessageSearchRange
-      rootCauseProbabilityThreshold          = var.rootCauseProbabilityThreshold
-      rootCauseRankSetting                   = var.rootCauseRankSetting
-      samplingInterval                       = var.samplingInterval
-      sharedUsernames                        = var.sharedUsernames
-      showInstanceDown                       = var.showInstanceDown
-      similaritySensitivity                  = var.similaritySensitivity
-      trainingFilter                         = var.trainingFilter
-      webhookAlertDampening                  = var.webhookAlertDampening
-      webhookBlackListSetStr                 = var.webhookBlackListSetStr
-      webhookCriticalKeywordSetStr           = var.webhookCriticalKeywordSetStr
-      webhookHeaderList                      = var.webhookHeaderList
-      webhookTypeSetStr                      = var.webhookTypeSetStr
-      webhookUrl                             = var.webhookUrl
-      whitelistNumberLimit                   = var.whitelistNumberLimit
-      zoneNameKey                            = var.zoneNameKey
+      UBLRetentionTime                     = var.UBLRetentionTime
+      alertAverageTime                     = var.alertAverageTime
+      alertHourlyCost                      = var.alertHourlyCost
+      anomalyDetectionMode                 = var.anomalyDetectionMode
+      anomalySamplingInterval              = var.anomalySamplingInterval
+      avgPerIncidentDowntimeCost           = var.avgPerIncidentDowntimeCost
+      baseValueSetting                     = var.baseValueSetting
+      cValue                               = var.cValue
+      causalMinDelay                       = var.causalMinDelay
+      causalPredictionSetting              = var.causalPredictionSetting
+      cdfSetting                           = var.cdfSetting
+      coldEventThreshold                   = var.coldEventThreshold
+      coldNumberLimit                      = var.coldNumberLimit
+      collectAllRareEventsFlag             = var.collectAllRareEventsFlag
+      dailyModelSpan                       = var.dailyModelSpan
+      disableLogCompressEvent              = var.disableLogCompressEvent
+      disableModelKeywordStatsCollection   = var.disableModelKeywordStatsCollection
+      emailSetting                         = var.emailSetting
+      enableAnomalyScoreEscalation         = var.enableAnomalyScoreEscalation
+      enableHotEvent                       = var.enableHotEvent
+      enableNewAlertEmail                  = var.enableNewAlertEmail
+      enableStreamDetection                = var.enableStreamDetection
+      escalationAnomalyScoreThreshold      = var.escalationAnomalyScoreThreshold
+      featureOutlierSensitivity            = var.featureOutlierSensitivity
+      featureOutlierThreshold              = var.featureOutlierThreshold
+      hotEventCalmDownPeriod               = var.hotEventCalmDownPeriod
+      hotEventDetectionMode                = var.hotEventDetectionMode
+      hotEventThreshold                    = var.hotEventThreshold
+      hotNumberLimit                       = var.hotNumberLimit
+      ignoreAnomalyScoreThreshold          = var.ignoreAnomalyScoreThreshold
+      ignoreInstanceForKB                  = var.ignoreInstanceForKB
+      incidentConsolidationInterval        = var.incidentConsolidationInterval
+      incidentCountThreshold               = var.incidentCountThreshold
+      incidentDurationThreshold            = var.incidentDurationThreshold
+      incidentPredictionEventLimit         = var.incidentPredictionEventLimit
+      incidentPredictionWindow             = var.incidentPredictionWindow
+      incidentRelationSearchWindow         = var.incidentRelationSearchWindow
+      instanceConvertFlag                  = var.instanceConvertFlag
+      instanceDownEnable                   = var.instanceDownEnable
+      instanceGroupingUpdate               = var.instanceGroupingUpdate
+      isEdgeBrain                          = var.isEdgeBrain
+      isGroupingByInstance                 = var.isGroupingByInstance
+      isTracePrompt                        = var.isTracePrompt
+      keywordFeatureNumber                 = var.keywordFeatureNumber
+      keywordSetting                       = var.keywordSetting
+      largeProject                         = var.largeProject
+      llmEvaluationSetting                 = var.llmEvaluationSetting
+      logAnomalyEventBaseScore             = var.logAnomalyEventBaseScore
+      logDetectionMinCount                 = var.logDetectionMinCount
+      logDetectionSize                     = var.logDetectionSize
+      logPatternLimitLevel                 = var.logPatternLimitLevel
+      logToLogSettingList                  = var.logToLogSettingList
+      maxLogModelSize                      = var.maxLogModelSize
+      maxWebHookRequestSize                = var.maxWebHookRequestSize
+      maximumDetectionWaitTime             = var.maximumDetectionWaitTime
+      maximumRootCauseResultSize           = var.maximumRootCauseResultSize
+      maximumThreads                       = var.maximumThreads
+      minIncidentPredictionWindow          = var.minIncidentPredictionWindow
+      minValidModelSpan                    = var.minValidModelSpan
+      modelKeywordSetting                  = var.modelKeywordSetting
+      multiHopSearchLevel                  = var.multiHopSearchLevel
+      multiHopSearchLimit                  = var.multiHopSearchLimit
+      multiLineFlag                        = var.multiLineFlag
+      newAlertFlag                         = var.newAlertFlag
+      newPatternNumberLimit                = var.newPatternNumberLimit
+      newPatternRange                      = var.newPatternRange
+      nlpFlag                              = var.nlpFlag
+      normalEventCausalFlag                = var.normalEventCausalFlag
+      pValue                               = var.pValue
+      predictionCountThreshold             = var.predictionCountThreshold
+      predictionProbabilityThreshold       = var.predictionProbabilityThreshold
+      predictionRuleActiveCondition        = var.predictionRuleActiveCondition
+      predictionRuleActiveThreshold        = var.predictionRuleActiveThreshold
+      predictionRuleFalsePositiveThreshold = var.predictionRuleFalsePositiveThreshold
+      predictionRuleInactiveThreshold      = var.predictionRuleInactiveThreshold
+      prettyJsonConvertorFlag              = var.prettyJsonConvertorFlag
+      projectDisplayName                   = var.projectDisplayName
+      projectModelFlag                     = var.projectModelFlag
+      projectTimeZone                      = var.projectTimeZone
+      proxy                                = var.proxy
+      rareAnomalyType                      = var.rareAnomalyType
+      rareEventAlertThresholds             = var.rareEventAlertThresholds
+      rareNumberLimit                      = var.rareNumberLimit
+      retentionTime                        = var.retentionTime
+      rootCauseCountThreshold              = var.rootCauseCountThreshold
+      rootCauseLogMessageSearchRange       = var.rootCauseLogMessageSearchRange
+      rootCauseProbabilityThreshold        = var.rootCauseProbabilityThreshold
+      rootCauseRankSetting                 = var.rootCauseRankSetting
+      samplingInterval                     = var.samplingInterval
+      sharedUsernames                      = var.sharedUsernames
+      showInstanceDown                     = var.showInstanceDown
+      similaritySensitivity                = var.similaritySensitivity
+      trainingFilter                       = var.trainingFilter
+      webhookAlertDampening                = var.webhookAlertDampening
+      webhookBlackListSetStr               = var.webhookBlackListSetStr
+      webhookCriticalKeywordSetStr         = var.webhookCriticalKeywordSetStr
+      webhookHeaderList                    = var.webhookHeaderList
+      webhookTypeSetStr                    = var.webhookTypeSetStr
+      webhookUrl                           = var.webhookUrl
+      whitelistNumberLimit                 = var.whitelistNumberLimit
+      zoneNameKey                          = var.zoneNameKey
       # Legacy metric project variables
       instanceGroupingData                   = var.instanceGroupingData
       highRatioCValue                        = var.highRatioCValue
@@ -366,10 +366,10 @@ locals {
 
   # Use config without log labels for the main API call
   api_config = local.config_without_log_labels
-  
+
   # JSON encode the config once for reuse
   api_config_json = jsonencode(local.api_config)
-  
+
   # Use a combination of project name and plantimestamp to create a cache key
   # This ensures the URL changes on each plan, forcing fresh data
   cache_key = md5("${var.project_name}-${plantimestamp()}")
@@ -377,13 +377,13 @@ locals {
 
 # Fetch current project configuration from API for drift detection
 data "http" "current_project_config" {
-  url = "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectList=${urlencode(jsonencode([{projectName = var.project_name, customerName = var.api_config.username}]))}&_v=${local.cache_key}"
-  
+  url = "${var.api_config.base_url}/api/external/v1/watch-tower-setting?projectList=${urlencode(jsonencode([{ projectName = var.project_name, customerName = var.api_config.username }]))}&_v=${local.cache_key}"
+
   request_headers = {
     X-User-Name = var.api_config.username
     X-API-Key   = var.api_config.license_key
   }
-  
+
   lifecycle {
     postcondition {
       condition     = contains([200, 204], self.status_code)
@@ -395,12 +395,12 @@ data "http" "current_project_config" {
 # Fetch current log label settings from API for drift detection
 data "http" "current_log_labels" {
   url = "${var.api_config.base_url}/api/external/v1/projectkeywords?projectName=${var.project_name}&_v=${local.cache_key}"
-  
+
   request_headers = {
     X-User-Name = var.api_config.username
     X-API-Key   = var.api_config.license_key
   }
-  
+
   lifecycle {
     postcondition {
       condition     = contains([200, 204], self.status_code)
@@ -412,14 +412,14 @@ data "http" "current_log_labels" {
 # Resource to display project existence status in plan output
 resource "null_resource" "project_existence_status" {
   triggers = {
-    project_name             = var.project_name
-    project_exists           = local.project_exists
-    http_status_code         = data.http.current_project_config.status_code
-    create_if_not_exists     = var.create_if_not_exists
-    will_create_if_missing   = !local.project_exists && var.create_if_not_exists
-    drift_detection_enabled  = true
+    project_name            = var.project_name
+    project_exists          = local.project_exists
+    http_status_code        = data.http.current_project_config.status_code
+    create_if_not_exists    = var.create_if_not_exists
+    will_create_if_missing  = !local.project_exists && var.create_if_not_exists
+    drift_detection_enabled = true
   }
-  
+
   lifecycle {
     # This resource is just for visibility, don't actually run anything
     create_before_destroy = true
@@ -430,21 +430,21 @@ resource "null_resource" "project_existence_status" {
 locals {
   # Check if project exists (HTTP 200 = exists, HTTP 204 = doesn't exist)
   project_exists = data.http.current_project_config.status_code == 200
-  
+
   # Parse the response which has structure: {"settingList": {"ProjectName": "{\"CLASSNAME\":\"...\",\"DATA\":{...}}"}}
   # If project doesn't exist (204), response_body will be empty
   api_response = local.project_exists ? jsondecode(data.http.current_project_config.response_body) : {}
-  
+
   # Extract the project-specific settings (it's a JSON string that needs another decode)
   project_settings_raw = try(local.api_response.settingList[var.project_name], "{}")
-  
+
   # Parse the nested JSON to get the actual DATA object
   project_settings_parsed = try(jsondecode(local.project_settings_raw), {})
-  
+
   # Extract the DATA field which contains the actual configuration
   # If project doesn't exist, this will be empty {}
   current_config = try(local.project_settings_parsed.DATA, {})
-  
+
   # Create a normalized version of current config (only fields we manage)
   # For nested objects, only compare keys that exist in our desired config
   # Special handling for emailSetting: API returns strings, keep them as strings
@@ -457,7 +457,7 @@ locals {
     )
     if contains(keys(local.api_config), k)
   }
-  
+
   # Helper function to check if two values are effectively equal
   # This handles nested objects, arrays, and null/empty comparisons
   values_equal = { for k in distinct(concat(keys(local.api_config), keys(local.current_config_normalized))) :
@@ -468,7 +468,7 @@ locals {
       jsonencode(try(local.api_config[k], null)) == jsonencode(try(local.current_config_normalized[k], null))
     )
   }
-  
+
   # Create a map showing which fields differ between desired and current
   config_diff = {
     for k in distinct(concat(keys(local.api_config), keys(local.current_config_normalized))) :
@@ -478,66 +478,66 @@ locals {
       changed = !local.values_equal[k]
     }
   }
-  
+
   # Extract only changed fields for trigger
   changed_fields = {
     for k, v in local.config_diff : k => v
     if v.changed
   }
-  
+
   # Create a deterministic hash of only the fields that matter
   config_state_hash = sha256(jsonencode({
     desired = local.api_config
     current = local.current_config_normalized
   }))
-  
+
   # Parse log label API response
   # Response structure: {"keywords": {"whitelist": [...], "trainingWhitelist": [...], "patternNameLabels": [...], ...}}
   # If project doesn't exist (204), response_body will be empty
-  log_labels_response = try(jsondecode(data.http.current_log_labels.response_body), {})
+  log_labels_response    = try(jsondecode(data.http.current_log_labels.response_body), {})
   current_log_labels_raw = try(local.log_labels_response.keywords, {})
-  
+
   # Map of Terraform labelType to API response field names
   label_type_mapping = {
-    "whitelist"          = "whitelist"
-    "trainingWhitelist"  = "trainingWhitelist"
-    "blacklist"          = "trainingBlacklistLabels"
-    "featurelist"        = "featurelist"
-    "incidentlist"       = "incidentlist"
-    "triagelist"         = "triagelist"
-    "anomalyFeature"     = "anomalyFeatureLabels"
-    "dataFilter"         = "dataFilterLabels"
-    "patternName"        = "patternNameLabels"
-    "instanceName"       = "instanceNameLabels"
-    "dataQualityCheck"   = "dataQualityCheckLabels"
-    "extractionBlacklist"= "extractionBlacklist"
+    "whitelist"           = "whitelist"
+    "trainingWhitelist"   = "trainingWhitelist"
+    "blacklist"           = "trainingBlacklistLabels"
+    "featurelist"         = "featurelist"
+    "incidentlist"        = "incidentlist"
+    "triagelist"          = "triagelist"
+    "anomalyFeature"      = "anomalyFeatureLabels"
+    "dataFilter"          = "dataFilterLabels"
+    "patternName"         = "patternNameLabels"
+    "instanceName"        = "instanceNameLabels"
+    "dataQualityCheck"    = "dataQualityCheckLabels"
+    "extractionBlacklist" = "extractionBlacklist"
   }
-  
+
   # Prepare data for each log label setting
   log_label_desired = {
     for idx, label_setting in local.log_label_settings : idx => try(jsondecode(label_setting.logLabelString), [])
   }
-  
+
   log_label_api_fields = {
     for idx, label_setting in local.log_label_settings : idx => try(local.label_type_mapping[label_setting.labelType], label_setting.labelType)
   }
-  
+
   log_label_current = {
     for idx, api_field in local.log_label_api_fields : idx => try(local.current_log_labels_raw[api_field], [])
   }
-  
+
   # For each desired log label setting, compare with current API state
   log_label_changes = {
     for idx, label_setting in local.log_label_settings : idx => {
-      label_type  = label_setting.labelType
-      api_field   = local.log_label_api_fields[idx]
-      desired     = local.log_label_desired[idx]
-      current     = local.log_label_current[idx]
+      label_type = label_setting.labelType
+      api_field  = local.log_label_api_fields[idx]
+      desired    = local.log_label_desired[idx]
+      current    = local.log_label_current[idx]
       # Sort both arrays by their JSON representation for consistent comparison
       has_changes = jsonencode(sort([for item in local.log_label_desired[idx] : jsonencode(item)])) != jsonencode(sort([for item in local.log_label_current[idx] : jsonencode(item)]))
     }
   }
-  
+
   # Determine which log label settings actually need to be applied
   log_labels_needing_update = {
     for idx, change in local.log_label_changes : idx => change
@@ -659,17 +659,17 @@ EOF
   triggers = {
     # Show project name
     project_name = var.project_name
-    
+
     # Trigger recreation when project is recreated
     project_creation_id = var.create_if_not_exists ? try(null_resource.create_project_if_needed[0].id, null) : null
-    
+
     # Include full drift information for all managed fields (similar to log label settings)
     # This shows current vs desired for each field with has_changes indicator
     config_drift_details = jsonencode(local.config_diff)
-    
+
     # Hash of ONLY the desired configuration - this stays constant unless tfvars change
     desired_config_hash = sha256(jsonencode(local.api_config))
-    
+
     # Hash of the CURRENT configuration from API - this changes when someone modifies in UI
     current_config_hash = sha256(jsonencode(local.current_config_normalized))
   }
@@ -751,18 +751,18 @@ CURL_EOF
   triggers = {
     # Show project name
     project_name = var.project_name
-    
+
     # Trigger recreation when project is recreated
     project_creation_id = var.create_if_not_exists ? try(null_resource.create_project_if_needed[0].id, null) : null
-    
+
     # Include drift detection information for this log label setting
     log_label_change = jsonencode(try(local.log_label_changes[count.index], {
       label_type  = local.log_label_settings[count.index].labelType
-      has_changes = true  # If no drift data, assume it needs to be applied
+      has_changes = true # If no drift data, assume it needs to be applied
       desired     = jsondecode(local.log_label_settings[count.index].logLabelString)
       current     = []
     }))
-    
+
     # Hash of this specific log label setting for comparison
     log_label_hash = sha256(jsonencode(local.log_label_settings[count.index]))
   }

@@ -33,20 +33,20 @@ output "changed_fields" {
 output "configuration_applied" {
   description = "Configuration application status"
   value = {
-    project_name       = var.project_name
-    config_state_hash  = local.config_state_hash
-    has_changes        = length(local.changed_fields) > 0
+    project_name        = var.project_name
+    config_state_hash   = local.config_state_hash
+    has_changes         = length(local.changed_fields) > 0
     changed_field_count = length(local.changed_fields)
-    applied_at         = timestamp()
+    applied_at          = timestamp()
   }
   depends_on = [null_resource.apply_config]
 }
 output "log_label_drift" {
   description = "Drift detection for log label settings"
   value = {
-    total_settings            = length(local.log_label_settings)
-    settings_needing_update   = length(local.log_labels_needing_update)
-    has_changes               = length(local.log_labels_needing_update) > 0
-    changes_by_label_type     = local.log_label_changes
+    total_settings          = length(local.log_label_settings)
+    settings_needing_update = length(local.log_labels_needing_update)
+    has_changes             = length(local.log_labels_needing_update) > 0
+    changes_by_label_type   = local.log_label_changes
   }
 }

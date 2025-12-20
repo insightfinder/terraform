@@ -130,21 +130,21 @@ data "http" "current_jwt_config" {
 locals {
   # Parse the API response to extract system settings
   api_response = jsondecode(data.http.current_jwt_config.response_body)
-  
+
   # Find the current system in ownSystemArr by system_name
   current_system_raw = try([
     for system_str in local.api_response.ownSystemArr :
     jsondecode(system_str) if length(regexall(var.jwt_config.system_name, system_str)) > 0
   ][0], null)
-  
+
   # Parse systemSetting to get current JWT configuration
   current_system_setting = try(jsondecode(local.current_system_raw.systemSetting), {})
-  current_jwt_secret = try(local.current_system_setting.systemLevelJWTSecret, null)
-  
+  current_jwt_secret     = try(local.current_system_setting.systemLevelJWTSecret, null)
+
   # Compare current vs desired
   jwt_config_drift = {
-    system_name = var.jwt_config.system_name
-    has_changes = local.current_jwt_secret != var.jwt_config.jwt_secret
+    system_name         = var.jwt_config.system_name
+    has_changes         = local.current_jwt_secret != var.jwt_config.jwt_secret
     current_secret_hash = local.current_jwt_secret != null ? sha256(local.current_jwt_secret) : null
     desired_secret_hash = sha256(var.jwt_config.jwt_secret)
   }
@@ -273,16 +273,16 @@ EOF
     system_name = var.jwt_config.system_name
     username    = var.api_config.username
     license_key = var.api_config.license_key
-    
+
     # Ensure system resolution happens before JWT config (recreate if system resolution changes)
     system_resolution_id = null_resource.resolve_system_name.id
-    
+
     # JWT drift detection - triggers recreation when secret changes or drift is detected
     jwt_config_drift = jsonencode(local.jwt_config_drift)
-    
+
     # Hash of desired secret (stays constant unless tfvars change)
     desired_secret_hash = sha256(var.jwt_config.jwt_secret)
-    
+
     # Hash of current secret from API (changes when someone modifies in UI)
     current_secret_hash = local.jwt_config_drift.current_secret_hash != null ? local.jwt_config_drift.current_secret_hash : "null"
   }
