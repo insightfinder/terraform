@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.0"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -100,6 +104,49 @@ EOF
     username    = var.api_config.username
     license_key = var.api_config.license_key
     system_name = var.jwt_config.system_name
+    # Trigger recreation when JWT drift is detected (to regenerate system ID file)
+    jwt_secret_hash = sha256(var.jwt_config.jwt_secret)
+  }
+}
+
+# Fetch current JWT configuration for drift detection
+data "http" "current_jwt_config" {
+  url = "${var.api_config.base_url}/api/external/v1/systemframework?customerName=${var.api_config.username}&needDetail=true&tzOffset=0"
+
+  request_headers = {
+    X-User-Name = var.api_config.username
+    X-API-Key   = var.api_config.license_key
+  }
+
+  lifecycle {
+    postcondition {
+      condition     = contains([200], self.status_code)
+      error_message = "Failed to fetch JWT configuration: HTTP ${self.status_code}"
+    }
+  }
+}
+
+# Parse JWT configuration and detect drift
+locals {
+  # Parse the API response to extract system settings
+  api_response = jsondecode(data.http.current_jwt_config.response_body)
+  
+  # Find the current system in ownSystemArr by system_name
+  current_system_raw = try([
+    for system_str in local.api_response.ownSystemArr :
+    jsondecode(system_str) if length(regexall(var.jwt_config.system_name, system_str)) > 0
+  ][0], null)
+  
+  # Parse systemSetting to get current JWT configuration
+  current_system_setting = try(jsondecode(local.current_system_raw.systemSetting), {})
+  current_jwt_secret = try(local.current_system_setting.systemLevelJWTSecret, null)
+  
+  # Compare current vs desired
+  jwt_config_drift = {
+    system_name = var.jwt_config.system_name
+    has_changes = local.current_jwt_secret != var.jwt_config.jwt_secret
+    current_secret_hash = local.current_jwt_secret != null ? sha256(local.current_jwt_secret) : null
+    desired_secret_hash = sha256(var.jwt_config.jwt_secret)
   }
 }
 
@@ -211,8 +258,9 @@ EOF
         exit 1
       fi
       
-      # Cleanup temp files
-      rm -f "/tmp/jwt-resolved-system-id-$IF_USERNAME.txt"
+      # Note: We DON'T cleanup the system ID temp file here because it may be needed 
+      # if this resource is recreated due to drift detection
+      # The file will be recreated by resolve_system_name when needed
     EOT
 
     environment = {
@@ -223,8 +271,19 @@ EOF
 
   triggers = {
     system_name = var.jwt_config.system_name
-    jwt_secret  = sha256(var.jwt_config.jwt_secret) # Use hash to avoid exposing secret in triggers
     username    = var.api_config.username
     license_key = var.api_config.license_key
+    
+    # Ensure system resolution happens before JWT config (recreate if system resolution changes)
+    system_resolution_id = null_resource.resolve_system_name.id
+    
+    # JWT drift detection - triggers recreation when secret changes or drift is detected
+    jwt_config_drift = jsonencode(local.jwt_config_drift)
+    
+    # Hash of desired secret (stays constant unless tfvars change)
+    desired_secret_hash = sha256(var.jwt_config.jwt_secret)
+    
+    # Hash of current secret from API (changes when someone modifies in UI)
+    current_secret_hash = local.jwt_config_drift.current_secret_hash != null ? local.jwt_config_drift.current_secret_hash : "null"
   }
 }
