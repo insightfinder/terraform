@@ -1,6 +1,6 @@
 # InsightFinder Terraform Configuration
 # This module provides clean, structured configuration for InsightFinder projects
-# Module Version: 2.1.0
+# Module Version: 2.2.0
 
 terraform {
   required_version = ">= 1.0"
