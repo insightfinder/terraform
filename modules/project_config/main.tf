@@ -72,8 +72,9 @@ resource "null_resource" "check_project_exists" {
   }
 
   triggers = {
-    project_name = var.project_name
-    username     = var.api_config.username
+    project_name     = var.project_name
+    username         = var.api_config.username
+    http_status_code = data.http.current_project_config.status_code
   }
 }
 
