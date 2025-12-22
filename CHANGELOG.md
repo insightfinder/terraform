@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-12-19
+
+### Added
+- Comprehensive drift detection for project configuration, log labels, JWT, and ServiceNow
+- Automatic detection when projects are deleted from UI and recreation on next apply
+- Automatic detection when configuration changes are made in UI
+- Individual drift trigger fields showing exactly what changed in plan output
+- Support for comparing all ServiceNow fields: dampening_period, options, content_option, system_ids, app_id, app_key
+
+### Fixed
+- **CRITICAL**: Resolved issue where Terraform didn't detect manually deleted projects from UI
+- **CRITICAL**: Resolved issue where local_file resources were recreated on every run in ephemeral CI environments
+- Fixed project configuration not reapplying after project recreation
+- Fixed log labels not reapplying after project recreation
+- Fixed JWT configuration failing due to missing system ID temp files during drift-triggered recreation
+- Fixed ServiceNow drift detection not comparing resolved system IDs from temp files
+
+### Changed
+- Removed `local_file` resources to prevent issues in ephemeral CI/CD environments
+- Temp files are no longer cleaned up to support drift-triggered recreations
+- Drift information now uses individual trigger fields for better visibility in plan output
+- Added `project_exists`, `project_creation_id`, and `system_resolution_id` triggers to ensure proper resource dependencies
+
+### Notes
+- **Important**: After manual UI changes, run `terraform apply` twice for full synchronization:
+  - First apply: Detects drift and applies corrections
+  - Second apply: Syncs Terraform state with corrected values
+  - This is due to how Terraform data sources refresh and is expected behavior
+
 ## [2.1.0] - 2025-12-11
 
 ### Added

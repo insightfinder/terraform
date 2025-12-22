@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/null"
       version = "~> 3.0"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -109,6 +113,85 @@ EOF
     license_key  = var.api_config.license_key
     system_names = join(",", var.servicenow_config.system_names)
     system_ids   = join(",", var.servicenow_config.system_ids)
+    # Trigger recreation when config changes (to regenerate system IDs file)
+    config_hash = sha256(jsonencode({
+      service_host     = var.servicenow_config.service_host
+      account          = var.servicenow_config.account
+      dampening_period = var.servicenow_config.dampening_period
+      options          = var.servicenow_config.options
+      content_option   = var.servicenow_config.content_option
+    }))
+  }
+}
+
+# Fetch current ServiceNow configuration for drift detection
+data "http" "current_servicenow_config" {
+  url = "${var.api_config.base_url}/api/external/v1/service-integration?tzOffset=0&account=${urlencode(var.servicenow_config.account)}&customerName=${var.api_config.username}&serviceProvider=ServiceNow&operation=display&service_host=${urlencode(var.servicenow_config.service_host)}"
+
+  request_headers = {
+    X-User-Name = var.api_config.username
+    X-API-Key   = var.api_config.license_key
+  }
+
+  lifecycle {
+    postcondition {
+      condition     = contains([200, 404], self.status_code)
+      error_message = "Failed to fetch ServiceNow configuration: HTTP ${self.status_code}"
+    }
+  }
+}
+
+# Parse ServiceNow configuration and detect drift
+locals {
+  # Check if ServiceNow config exists (HTTP 200 = exists, HTTP 404 = doesn't exist)
+  servicenow_exists = data.http.current_servicenow_config.status_code == 200
+
+  # Parse the API response
+  api_response = local.servicenow_exists ? jsondecode(data.http.current_servicenow_config.response_body) : {}
+
+  # Extract current configuration
+  current_dampening_period = try(local.api_response.dampeningPeriod, null)
+  current_options          = try(jsondecode(local.api_response.options), [])
+  current_app_id           = try(local.api_response.appId, "")
+  current_app_key          = try(local.api_response.appKey, "")
+  # Note: password is encrypted in API response, so we can't compare it directly
+  # We'll trigger update if other fields change, which will also update the password
+
+  # Parse serviceNowIntegrationConfig JSON string
+  current_integration_config = try(jsondecode(local.api_response.serviceNowIntegrationConfig), {})
+  current_system_ids         = try(local.current_integration_config.systemIds, [])
+  current_content_option     = try(local.current_integration_config.contentOption, [])
+
+  # Get desired system IDs (either provided directly or will be resolved from temp file)
+  # Read the resolved system IDs file if it exists, otherwise use provided system IDs
+  resolved_system_ids_file = "/tmp/resolved-system-ids-${var.api_config.username}.txt"
+  resolved_system_ids_raw  = fileexists(local.resolved_system_ids_file) ? trimspace(file(local.resolved_system_ids_file)) : ""
+  desired_system_ids       = local.resolved_system_ids_raw != "" ? split(",", local.resolved_system_ids_raw) : var.servicenow_config.system_ids
+
+  # Compare current vs desired (only if ServiceNow config exists)
+  servicenow_config_drift = {
+    service_host = var.servicenow_config.service_host
+    account      = var.servicenow_config.account
+    has_changes = local.servicenow_exists ? (
+      local.current_dampening_period != var.servicenow_config.dampening_period ||
+      jsonencode(sort(local.current_options)) != jsonencode(sort(var.servicenow_config.options)) ||
+      jsonencode(sort(local.current_content_option)) != jsonencode(sort(var.servicenow_config.content_option)) ||
+      local.current_app_id != var.servicenow_config.app_id ||
+      local.current_app_key != var.servicenow_config.app_key ||
+      (length(local.desired_system_ids) > 0 ? jsonencode(sort(local.current_system_ids)) != jsonencode(sort(local.desired_system_ids)) : false)
+    ) : true
+    current_dampening  = local.current_dampening_period
+    desired_dampening  = var.servicenow_config.dampening_period
+    current_options    = local.current_options
+    desired_options    = var.servicenow_config.options
+    current_content    = local.current_content_option
+    desired_content    = var.servicenow_config.content_option
+    current_system_ids = local.current_system_ids
+    desired_system_ids = local.desired_system_ids
+    current_app_id     = local.current_app_id
+    desired_app_id     = var.servicenow_config.app_id
+    current_app_key    = local.current_app_key
+    desired_app_key    = var.servicenow_config.app_key
   }
 }
 
@@ -286,9 +369,9 @@ EOF
         exit 1
       fi
       
-      # Cleanup temp files
-      rm -f "/tmp/systems-$IF_USERNAME.json"
-      rm -f "/tmp/resolved-system-ids-$IF_USERNAME.txt"
+      # Note: We DON'T cleanup the system IDs temp files here because they may be needed 
+      # if this resource is recreated due to drift detection
+      # The files will be recreated by resolve_system_names when needed
     EOT
 
     environment = {
@@ -309,5 +392,17 @@ EOF
     system_names     = join(",", var.servicenow_config.system_names)
     options          = join(",", var.servicenow_config.options)
     content_option   = join(",", var.servicenow_config.content_option)
+
+    # Ensure system resolution happens before ServiceNow config (recreate if system resolution changes)
+    system_resolution_id = null_resource.resolve_system_names.id
+
+    # Drift detection - individual fields to show what changed
+    drift_has_changes        = local.servicenow_config_drift.has_changes
+    drift_current_dampening  = tostring(local.servicenow_config_drift.current_dampening)
+    drift_current_options    = join(",", local.servicenow_config_drift.current_options)
+    drift_current_content    = join(",", local.servicenow_config_drift.current_content)
+    drift_current_system_ids = join(",", local.servicenow_config_drift.current_system_ids)
+    drift_current_app_id     = local.servicenow_config_drift.current_app_id
+    drift_current_app_key    = local.servicenow_config_drift.current_app_key
   }
 }

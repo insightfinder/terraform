@@ -22,3 +22,14 @@ output "jwt_secret_length" {
   value       = length(var.jwt_config.jwt_secret)
   sensitive   = false
 }
+
+output "jwt_config_drift" {
+  description = "JWT configuration drift detection information"
+  value = {
+    system_name         = local.jwt_config_drift.system_name
+    has_changes         = local.jwt_config_drift.has_changes
+    current_secret_hash = local.jwt_config_drift.current_secret_hash
+    desired_secret_hash = local.jwt_config_drift.desired_secret_hash
+  }
+  sensitive = false
+}

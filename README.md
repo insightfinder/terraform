@@ -1,6 +1,6 @@
 # InsightFinder Terraform Module
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](./VERSION)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](./VERSION)
 [![Changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-orange.svg)](./CHANGELOG.md)
 
 A production-ready Terraform module for managing InsightFinder projects using Infrastructure as Code (IaC) principles.
@@ -30,7 +30,7 @@ Create a `main.tf` file in your project:
 ```hcl
 # main.tf
 module "insightfinder" {
-  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.1.0"
+  source = "git::https://github.com/insightfinder/terraform.git?ref=v2.2.0"
   
   base_url    = "https://app.insightfinder.com"
   username    = var.username
@@ -121,6 +121,34 @@ terraform init
 terraform plan -var-file="my-config.tfvars"
 terraform apply -var-file="my-config.tfvars"
 ```
+
+## ⚠️ Important Notes
+
+### Drift Detection and Manual UI Changes
+
+This module includes **comprehensive drift detection** for all configurations (project settings, log labels, JWT, ServiceNow). If you make changes directly in the InsightFinder UI, Terraform will detect the drift and restore your desired configuration.
+
+**After making manual changes in the UI, run `terraform apply` twice:**
+
+1. **First apply**: Detects drift and applies corrections to the UI
+2. **Second apply**: Syncs Terraform state with the corrected values
+
+This two-apply requirement is due to how Terraform data sources refresh and is expected behavior. The first apply corrects the drift, and the second apply confirms everything is in sync.
+
+**Example:**
+```bash
+# After making manual UI changes
+terraform plan   # Shows drift detected
+terraform apply  # First apply: fixes the drift
+terraform apply  # Second apply: syncs state (shows no changes)
+```
+
+**What's Detected:**
+- ✅ Project deleted from UI → Recreated automatically
+- ✅ Project configuration changes → Restored to Terraform config
+- ✅ Log label changes → Restored to Terraform config  
+- ✅ JWT secret changes → Restored to Terraform config
+- ✅ ServiceNow settings changes → Restored to Terraform config
 
 ## 📋 Configuration Examples
 
